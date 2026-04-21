@@ -16,25 +16,12 @@
 - **Rich Condition Types**: Support for equality, comparison, regex, range checks, and CEL expressions
 - **Logical Operators**: Combine conditions with AND, OR, NOT operators with configurable precedence
 - **Expression Language Support**: Integrate [Google CEL](https://github.com/google/cel-spec) for advanced expression evaluation
-- **Event Listeners**: Track rule and condition evaluation with customizable listeners and reporting
+- **Event Listeners**: Track rule and condition evaluation with customizable listeners
 - **Performance Optimization**: Built-in caching and short-circuit evaluation
 - **Path-Based Evaluation**: Evaluate multiple logical paths through conditions
-- **Comprehensive Exception Handling**: Detailed error reporting with custom exception types
-- **Full Test Coverage**: Extensive test suite with 20+ unit tests
+- **Full Test Coverage**: Extensive test suite with 500+ unit tests
 
 ## 📦 Installation
-
-### Maven
-
-Add to your `pom.xml`:
-
-```xml
-<dependency>
-    <groupId>labs.franklee</groupId>
-    <artifactId>celero</artifactId>
-    <version>1.0.0</version>
-</dependency>
-```
 
 ### Build from Source
 
