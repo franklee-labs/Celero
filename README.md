@@ -1,6 +1,8 @@
 # Celero
 
-![](./assets/celero_blue.svg)
+<div align="center">
+    <img src="./assets/celero_blue.svg" width="200" />
+</div>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Java Version](https://img.shields.io/badge/Java-25-blue)](https://www.oracle.com/java/)
