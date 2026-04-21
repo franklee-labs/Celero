@@ -1,5 +1,7 @@
 # Celero
 
+![](./assets/celero_blue.svg)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Java Version](https://img.shields.io/badge/Java-25-blue)](https://www.oracle.com/java/)
 [![Maven Central](https://img.shields.io/badge/Maven-1.0.0-blue)](https://mvnrepository.com/artifact/labs.franklee/celero)
