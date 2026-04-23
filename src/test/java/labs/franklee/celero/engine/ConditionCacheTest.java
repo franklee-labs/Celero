@@ -36,16 +36,16 @@ class ConditionCacheTest {
         return Context.Builder.createBuilder(RuleContext.of(m)).build();
     }
 
-    private static EqualCondition eq(String id, String key, String value) {
-        EqualCondition c = new EqualCondition(key, value, ValueType.String, 0);
+    private static EqualCondition eq(String id, String field, String value) {
+        EqualCondition c = new EqualCondition(field, value, ValueType.String, 0);
         c.setId(id);
         return c;
     }
 
-    private static ConditionNode condNode(String id, String key, String value, boolean cacheable) {
+    private static ConditionNode condNode(String id, String field, String value, boolean cacheable) {
         ConditionNode c = new ConditionNode();
         c.setType("condition").setSign("EQ").setId(id).setName(id + "-name");
-        c.setProperties(Map.of("key", key, "value", value, "valueType", "String"));
+        c.setProperties(Map.of("field", field, "value", value, "valueType", "String"));
         c.setCacheable(cacheable);
         return c;
     }

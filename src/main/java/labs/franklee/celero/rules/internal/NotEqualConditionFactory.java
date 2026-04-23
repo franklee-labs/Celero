@@ -9,6 +9,6 @@ public class NotEqualConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new NotEqualCondition(key(properties), value(properties), valueType(properties), priority(properties));
+        return new NotEqualCondition(field(properties), value(properties), valueType(properties), priority(properties));
     }
 }

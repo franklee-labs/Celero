@@ -84,6 +84,30 @@ class CelNumberConversionTest {
         assertTrue((Boolean) result);
     }
 
+    /* int equals double */
+    @Test
+    void doubleValue_equalsInt_works() throws Exception {
+        BigDecimal bd = new BigDecimal("99.00");
+
+        CelRuntime.Program eq = compileDouble("key == value");
+        System.out.println(bd.doubleValue());
+        Object result = eq.eval(Map.of("key", 99, "value", bd.doubleValue()));
+
+        assertTrue((Boolean) result);
+    }
+
+    /* long equals double */
+    @Test
+    void doubleValue_equalsLong_works() throws Exception {
+        BigDecimal bd = new BigDecimal("1.23E10");
+
+        CelRuntime.Program eq = compileDouble("key == value");
+        System.out.println(bd.doubleValue());
+        Object result = eq.eval(Map.of("key", 12300000000L, "value", bd.doubleValue()));
+
+        assertTrue((Boolean) result);
+    }
+
     @Test
     void doubleValue_beyondPrecision_lostBeforeCel() throws Exception {
         // digits beyond ~17 significant figures are lost in doubleValue()

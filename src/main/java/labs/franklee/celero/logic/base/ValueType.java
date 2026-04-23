@@ -4,6 +4,7 @@ public enum ValueType {
     String,
     Number,
     Boolean,
+    List,
     Expression;
 
     public static ValueType fromString(String value) {

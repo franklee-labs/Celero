@@ -25,7 +25,7 @@ public class NegateRegexCondition extends Condition {
     private static final String OVERLOAD_ID = "regex_not_matches_string";
 
     private final RegexCondition origin;
-    private final String key;
+    private final String field;
     private final String regex;
 
     private CelRuntime.Program program;
@@ -34,8 +34,15 @@ public class NegateRegexCondition extends Condition {
         super(origin.getPriority());
         this.setName("[negated]" + origin.getName());
         this.origin = origin;
-        this.key = origin.getKey();
+        this.field = origin.getField();
         this.regex = origin.getRegex();
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
+    }
+
+    private String generateName() {
+        return FUNC_NAME + "(" + this.field + ")";
     }
 
     @Override
@@ -67,7 +74,7 @@ public class NegateRegexCondition extends Condition {
     public void compile() throws Exception {
         Pattern pattern = Pattern.compile(this.regex);
 
-        this.expression = FUNC_NAME + "(" + this.key + ")";
+        this.expression = FUNC_NAME + "(" + this.field + ")";
         Set<String> varNames = CelUtils.extractTopVarNames(expression);
 
         var builder = CelFactory.standardCelBuilder()

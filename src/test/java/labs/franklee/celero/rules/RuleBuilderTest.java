@@ -22,7 +22,7 @@ class RuleBuilderTest {
         cond.setId("cond-1");
         cond.setType("condition");
         cond.setSign("EQ");
-        cond.setProperties(Map.of("key", "status", "value", "active", "valueType", "String"));
+        cond.setProperties(Map.of("field", "status", "value", "active", "valueType", "String"));
 
         RelationNode root = new RelationNode();
         root.setSign("AND");
@@ -44,7 +44,7 @@ class RuleBuilderTest {
         cond.setId("cond-1");
         cond.setType("condition");
         cond.setSign("EQ");
-        cond.setProperties(Map.of("key", "status", "value", "active", "valueType", "String"));
+        cond.setProperties(Map.of("field", "status", "value", "active", "valueType", "String"));
 
         Rule rule = RuleBuilder.create()
                 .id("r002").name("single cond")
@@ -78,7 +78,7 @@ class RuleBuilderTest {
                         "id": "cond-1",
                         "type": "condition",
                         "sign": "GT",
-                        "key": "age",
+                        "field": "age",
                         "value": "18",
                         "valueType": "Number"
                       }
@@ -108,8 +108,9 @@ class RuleBuilderTest {
                         "id": "cond-1",
                         "type": "condition",
                         "sign": "IN",
-                        "key": "role",
-                        "value": "[\\"admin\\", \\"ops\\"]"
+                        "field": "role",
+                        "value": "[\\"admin\\", \\"ops\\"]",
+                        "valueType": "List"
                       }
                     ]
                   }
@@ -133,7 +134,7 @@ class RuleBuilderTest {
                         "id": "cond-1",
                         "type": "condition",
                         "sign": "GTE",
-                        "key": "score",
+                        "field": "score",
                         "value": "60",
                         "valueType": "Number"
                       },
@@ -145,7 +146,7 @@ class RuleBuilderTest {
                             "id": "cond-2",
                             "type": "condition",
                             "sign": "EQ",
-                            "key": "vip",
+                            "field": "vip",
                             "value": "true",
                             "valueType": "Boolean"
                           },
@@ -153,7 +154,7 @@ class RuleBuilderTest {
                             "id": "cond-3",
                             "type": "condition",
                             "sign": "EQ",
-                            "key": "role",
+                            "field": "role",
                             "value": "admin",
                             "valueType": "String"
                           }
@@ -179,7 +180,7 @@ class RuleBuilderTest {
                     "id": "cond-1",
                     "type": "condition",
                     "sign": "EQ",
-                    "key": "status",
+                    "field": "status",
                     "value": "active",
                     "valueType": "String"
                   }
@@ -203,7 +204,7 @@ class RuleBuilderTest {
                       {
                         "type": "condition",
                         "sign": "UNKNOWN",
-                        "key": "x",
+                        "field": "x",
                         "value": "1",
                         "valueType": "Number"
                       }
@@ -266,7 +267,7 @@ class RuleBuilderTest {
                     "name": "status check",
                     "type": "condition",
                     "sign": "EQ",
-                    "key": "status",
+                    "field": "status",
                     "value": "active",
                     "valueType": "String"
                   },
@@ -279,7 +280,7 @@ class RuleBuilderTest {
                         "name": "role check",
                         "type": "condition",
                         "sign": "EQ",
-                        "key": "role",
+                        "field": "role",
                         "value": "admin",
                         "valueType": "String"
                       },
@@ -288,7 +289,7 @@ class RuleBuilderTest {
                         "name": "level check",
                         "type": "condition",
                         "sign": "EQ",
-                        "key": "level",
+                        "field": "level",
                         "value": "high",
                         "valueType": "String"
                       }
@@ -303,7 +304,7 @@ class RuleBuilderTest {
                         "name": "banned check",
                         "type": "condition",
                         "sign": "EQ",
-                        "key": "banned",
+                        "field": "banned",
                         "value": "true",
                         "valueType": "Boolean"
                       }

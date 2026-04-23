@@ -46,21 +46,31 @@ public class RegexCondition extends Condition {
     private static final String FUNC_NAME = "regex_matches";
     private static final String OVERLOAD_ID = "regex_matches_string";
 
-    private final String key;
+    private final String field;
     private final String regex;
 
     private CelRuntime.Program program;
 
-    public RegexCondition(String key, String regex) {
+    public RegexCondition(String field, String regex) {
         super();
-        this.key = key;
+        this.field = field;
         this.regex = regex;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
     }
 
-    public RegexCondition(String key, String regex, int priority) {
+    public RegexCondition(String field, String regex, int priority) {
         super(priority);
-        this.key = key;
+        this.field = field;
         this.regex = regex;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
+    }
+
+    private String generateName() {
+        return FUNC_NAME + "(" + this.field + ")";
     }
 
     @Override
@@ -95,7 +105,7 @@ public class RegexCondition extends Condition {
     public void compile() throws Exception {
         Pattern pattern = Pattern.compile(this.regex);
 
-        this.expression = FUNC_NAME + "(" + this.key + ")";
+        this.expression = FUNC_NAME + "(" + this.field + ")";
         Set<String> varNames = CelUtils.extractTopVarNames(expression);
 
         var builder = CelFactory.standardCelBuilder()
@@ -113,8 +123,8 @@ public class RegexCondition extends Condition {
         this.program = cel.createProgram(ast);
     }
 
-    String getKey() {
-        return this.key;
+    String getField() {
+        return this.field;
     }
 
     String getRegex() {

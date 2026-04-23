@@ -9,6 +9,6 @@ public class NotInConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new NotInCondition(key(properties), parseList(properties), priority(properties));
+        return new NotInCondition(field(properties), value(properties), valueType(properties), priority(properties));
     }
 }

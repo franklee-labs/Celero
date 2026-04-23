@@ -9,6 +9,6 @@ public class LessThanConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new LessThanCondition(key(properties), value(properties), valueType(properties), priority(properties));
+        return new LessThanCondition(field(properties), value(properties), valueType(properties), priority(properties));
     }
 }

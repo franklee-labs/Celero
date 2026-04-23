@@ -42,7 +42,7 @@ class ConditionPriorityTest {
 
     @Test
     void getPriority_inCondition_returnsExplicitPriority() {
-        assertEquals(7, new InCondition("x", List.of("a"), 7).getPriority());
+        assertEquals(7, new InCondition("x", "[\"a\"]", ValueType.List, 7).getPriority());
     }
 
     @Test
@@ -96,12 +96,12 @@ class ConditionPriorityTest {
 
     @Test
     void negate_inCondition_preservesPriority() throws Exception {
-        assertEquals(2, new InCondition("x", List.of("a"), 2).negate().getPriority());
+        assertEquals(2, new InCondition("x", "[\"admin\", \"ops\"]", ValueType.List, 2).negate().getPriority());
     }
 
     @Test
     void negate_notInCondition_preservesPriority() throws Exception {
-        assertEquals(11, new NotInCondition("x", List.of("a"), 11).negate().getPriority());
+        assertEquals(11, new NotInCondition("x", "[\"admin\", \"ops\"]", ValueType.List, 11).negate().getPriority());
     }
 
     @Test

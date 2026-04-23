@@ -18,7 +18,7 @@ public class LessThanOrEqualCondition extends Condition {
 
     private static final String LTE = " <= ";
 
-    private final String key;
+    private final String field;
     private final ValueType valueType;
     private final String value;
 
@@ -26,18 +26,31 @@ public class LessThanOrEqualCondition extends Condition {
     private CelRuntime.Program program;
     private Map<String, Object> builtinParams;
 
-    public LessThanOrEqualCondition(String key, String value, ValueType valueType) {
+    public LessThanOrEqualCondition(String field, String value, ValueType valueType) {
         super();
-        this.key = key;
+        this.field = field;
         this.value = value;
         this.valueType = valueType;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
     }
 
-    public LessThanOrEqualCondition(String key, String value, ValueType valueType, int priority) {
+    public LessThanOrEqualCondition(String field, String value, ValueType valueType, int priority) {
         super(priority);
-        this.key = key;
+        this.field = field;
         this.value = value;
         this.valueType = valueType;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
+    }
+
+    private String generateName() {
+        if (ValueType.Number.equals(this.valueType)) {
+            return String.format("%s %s num(%s)", this.field, LTE, this.value);
+        }
+        return String.format("%s %s %s", this.field, LTE, this.value);
     }
 
     @Override
@@ -57,7 +70,7 @@ public class LessThanOrEqualCondition extends Condition {
 
     @Override
     public Condition negate() throws Exception {
-        Condition condition = new GreaterThanCondition(this.key, this.value, this.valueType, this.getPriority());
+        Condition condition = new GreaterThanCondition(this.field, this.value, this.valueType, this.getPriority());
         condition.build();
         return condition;
     }
@@ -82,11 +95,11 @@ public class LessThanOrEqualCondition extends Condition {
     @Override
     public void compile() throws Exception {
         if (this.valueType == ValueType.Expression) {
-            this.expression = this.key + LTE + this.value;
+            this.expression = this.field + LTE + this.value;
             this.buildCelProgram(null);
         } else if (this.valueType == ValueType.Number) {
             String valKey = Constant.BUILTIN_KEY + "NUM_001";
-            this.expression = this.key + LTE + valKey;
+            this.expression = this.field + LTE + valKey;
             BigDecimal bd = new BigDecimal(this.value).stripTrailingZeros();
             Map<String, CelType> celType;
             if (bd.scale() <= 0) {

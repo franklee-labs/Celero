@@ -20,21 +20,21 @@ class AdvancedCeleroEngineTest {
 
     // ---- helpers ----
 
-    private static ConditionNode condNode(String id, String name, String key, String value) {
+    private static ConditionNode condNode(String id, String name, String field, String value) {
         ConditionNode c = new ConditionNode();
         c.setType("condition").setSign("EQ").setId(id).setName(name);
-        c.setProperties(Map.of("key", key, "value", value, "valueType", "String"));
+        c.setProperties(Map.of("field", field, "value", value, "valueType", "String"));
         return c;
     }
 
-    private static ConditionNode condNode(String id, String key, String value) {
-        return condNode(id, id + "-name", key, value);
+    private static ConditionNode condNode(String id, String field, String value) {
+        return condNode(id, id + "-name", field, value);
     }
 
-    private static Rule singleCondRule(String ruleId, String ruleName, String key, String value) throws Throwable {
+    private static Rule singleCondRule(String ruleId, String ruleName, String field, String value) throws Throwable {
         return RuleBuilder.create()
                 .id(ruleId).name(ruleName)
-                .root(condNode("cond-1", "cond-1-name", key, value))
+                .root(condNode("cond-1", "cond-1-name", field, value))
                 .build();
     }
 

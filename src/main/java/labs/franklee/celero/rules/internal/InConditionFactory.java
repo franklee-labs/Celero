@@ -9,6 +9,6 @@ public class InConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new InCondition(key(properties), parseList(properties), priority(properties));
+        return new InCondition(field(properties), value(properties), valueType(properties), priority(properties));
     }
 }

@@ -12,11 +12,21 @@ public class CelCondition extends Condition {
     public CelCondition(String expression) {
         super();
         this.expression = expression;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
     }
 
     public CelCondition(String expression, int priority) {
         super(priority);
         this.expression = expression;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
+    }
+
+    private String generateName() {
+        return this.expression;
     }
 
     @Override

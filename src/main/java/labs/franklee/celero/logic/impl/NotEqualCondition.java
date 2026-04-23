@@ -18,7 +18,7 @@ public class NotEqualCondition extends Condition {
 
     private final static String NOT_EQUAL = " != ";
 
-    private final String key;
+    private final String field;
 
     private final ValueType valueType;
 
@@ -30,18 +30,40 @@ public class NotEqualCondition extends Condition {
 
     private Map<String, Object> builtinParams;
 
-    public NotEqualCondition(String key, String value, ValueType valueType) {
+    public NotEqualCondition(String field, String value, ValueType valueType) {
         super();
-        this.key = key;
+        this.field = field;
         this.value = value;
         this.valueType = valueType;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
     }
 
-    public NotEqualCondition(String key, String value, ValueType valueType, int priority) {
+    public NotEqualCondition(String field, String value, ValueType valueType, int priority) {
         super(priority);
-        this.key = key;
+        this.field = field;
         this.value = value;
         this.valueType = valueType;
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
+    }
+
+    private String generateName() {
+        if (ValueType.String.equals(this.valueType)) {
+            return String.format("%s %s str(%s)", this.field, NOT_EQUAL, this.value);
+        }
+        if (ValueType.Number.equals(this.valueType)) {
+            return String.format("%s %s num(%s)", this.field, NOT_EQUAL, this.value);
+        }
+        if (ValueType.Expression.equals(this.valueType)) {
+            return String.format("%s %s %s", this.field, NOT_EQUAL, this.value);
+        }
+        if (ValueType.Boolean.equals(this.valueType)) {
+            return String.format("%s %s bool(%s)", this.field, NOT_EQUAL, this.value);
+        }
+        return String.format("%s %s %s", this.field, NOT_EQUAL, this.value);
     }
 
     @Override
@@ -59,7 +81,7 @@ public class NotEqualCondition extends Condition {
 
     @Override
     public Condition negate() throws Exception {
-        Condition condition = new EqualCondition(this.key, this.value, this.valueType, this.getPriority());
+        Condition condition = new EqualCondition(this.field, this.value, this.valueType, this.getPriority());
         condition.build();
         return condition;
     }
@@ -83,24 +105,24 @@ public class NotEqualCondition extends Condition {
     @Override
     public void compile() throws Exception {
         if (this.valueType == ValueType.Expression) {
-            this.expression = this.key + NOT_EQUAL + this.value;
+            this.expression = this.field + NOT_EQUAL + this.value;
             this.buildCelProgram(null);
         } else if (this.valueType == ValueType.String) {
             String valKey = Constant.BUILTIN_KEY + "STR_001";
-            this.expression = this.key + NOT_EQUAL + valKey;
+            this.expression = this.field + NOT_EQUAL + valKey;
             this.buildCelProgram(Map.of(valKey, SimpleType.STRING));
             this.builtinParams = Map.of(valKey, this.value);
         } else if (this.valueType == ValueType.Boolean) {
             boolean b = Boolean.parseBoolean(this.value);
             if (b) {
-                this.expression = this.key + NOT_EQUAL + "true";
+                this.expression = this.field + NOT_EQUAL + "true";
             } else {
-                this.expression = this.key + NOT_EQUAL + "false";
+                this.expression = this.field + NOT_EQUAL + "false";
             }
             this.buildCelProgram(null);
         } else if (this.valueType == ValueType.Number) {
             String valKey = Constant.BUILTIN_KEY + "NUM_001";
-            this.expression = this.key + NOT_EQUAL + valKey;
+            this.expression = this.field + NOT_EQUAL + valKey;
             BigDecimal bd = new BigDecimal(this.value);
             BigDecimal striped = bd.stripTrailingZeros();
             Map<String, CelType> celType;

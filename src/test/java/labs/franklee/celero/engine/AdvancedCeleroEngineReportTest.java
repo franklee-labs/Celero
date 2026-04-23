@@ -13,15 +13,15 @@ class AdvancedCeleroEngineReportTest {
 
     // ---- helpers ----
 
-    private static ConditionNode condNode(String id, String name, String key, String value) {
+    private static ConditionNode condNode(String id, String name, String field, String value) {
         ConditionNode c = new ConditionNode();
         c.setType("condition").setSign("EQ").setId(id).setName(name);
-        c.setProperties(Map.of("key", key, "value", value, "valueType", "String"));
+        c.setProperties(Map.of("field", field, "value", value, "valueType", "String"));
         return c;
     }
 
-    private static ConditionNode condNode(String id, String name, String key, String value, boolean cacheable) {
-        ConditionNode c = condNode(id, name, key, value);
+    private static ConditionNode condNode(String id, String name, String field, String value, boolean cacheable) {
+        ConditionNode c = condNode(id, name, field, value);
         c.setCacheable(cacheable);
         return c;
     }

@@ -2,6 +2,7 @@ package labs.franklee.celero.logic.impl;
 
 import labs.franklee.celero.context.Context;
 import labs.franklee.celero.engine.RuleContext;
+import labs.franklee.celero.exceptions.EvalException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -111,5 +112,14 @@ class CelConditionTest {
 
         assertEquals(origin.execute(pass).isTrue(), doubleNegated.execute(pass).isTrue());
         assertEquals(origin.execute(fail).isTrue(), doubleNegated.execute(fail).isTrue());
+    }
+
+    // EvalException
+
+    @Test
+    void invalidCel_evalException_throw() throws Throwable {
+        CelCondition cond = new CelCondition("age > val");
+        cond.compile();
+        assertThrows(EvalException.class, () -> cond.execute(Context.Builder.createBuilder(RuleContext.of(Map.of("age", 18, "val", "ss"))).build()));
     }
 }

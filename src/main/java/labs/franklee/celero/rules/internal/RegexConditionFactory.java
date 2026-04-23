@@ -9,6 +9,6 @@ public class RegexConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new RegexCondition(key(properties), value(properties), priority(properties));
+        return new RegexCondition(field(properties), value(properties), priority(properties));
     }
 }
