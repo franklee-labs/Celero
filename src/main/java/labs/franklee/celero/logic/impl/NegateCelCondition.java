@@ -23,7 +23,8 @@ public class NegateCelCondition extends Condition {
         }
     }
 
-    private String generateName() {
+    @Override
+    protected String generateName() {
         return this.expression;
     }
 

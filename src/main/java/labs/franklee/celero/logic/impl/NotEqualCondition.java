@@ -50,7 +50,8 @@ public class NotEqualCondition extends Condition {
         }
     }
 
-    private String generateName() {
+    @Override
+    protected String generateName() {
         if (ValueType.String.equals(this.valueType)) {
             return String.format("%s %s str(%s)", this.field, NOT_EQUAL, this.value);
         }

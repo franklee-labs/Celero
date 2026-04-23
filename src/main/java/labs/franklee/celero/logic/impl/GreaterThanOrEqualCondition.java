@@ -46,7 +46,8 @@ public class GreaterThanOrEqualCondition extends Condition {
         }
     }
 
-    private String generateName() {
+    @Override
+    protected String generateName() {
         if (ValueType.Number.equals(this.valueType)) {
             return String.format("%s %s num(%s)", this.field, GTE, this.value);
         }

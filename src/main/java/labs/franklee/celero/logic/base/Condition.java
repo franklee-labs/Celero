@@ -36,6 +36,16 @@ public abstract class Condition extends Node implements Negatable<Condition> {
         this.internalUniqueId = UUID.randomUUID().toString();
     }
 
+    protected abstract String generateName();
+
+    @Override
+    public void setName(String name) {
+        super.setName(name);
+        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
+            this.setName(generateName());
+        }
+    }
+
     public String getInternalUniqueId() {
         return internalUniqueId;
     }

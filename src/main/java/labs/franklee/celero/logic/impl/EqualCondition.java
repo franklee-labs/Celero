@@ -51,7 +51,8 @@ public class EqualCondition extends Condition {
         }
     }
 
-    private String generateName() {
+    @Override
+    protected String generateName() {
         if (ValueType.String.equals(this.valueType)) {
             return String.format("%s %s str(%s)", this.field, EQUAL, this.value);
         }

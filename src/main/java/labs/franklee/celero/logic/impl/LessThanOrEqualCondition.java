@@ -46,7 +46,8 @@ public class LessThanOrEqualCondition extends Condition {
         }
     }
 
-    private String generateName() {
+    @Override
+    protected String generateName() {
         if (ValueType.Number.equals(this.valueType)) {
             return String.format("%s %s num(%s)", this.field, LTE, this.value);
         }

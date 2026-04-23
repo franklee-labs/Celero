@@ -69,7 +69,8 @@ public class RegexCondition extends Condition {
         }
     }
 
-    private String generateName() {
+    @Override
+    protected String generateName() {
         return FUNC_NAME + "(" + this.field + ")";
     }
 

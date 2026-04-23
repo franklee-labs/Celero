@@ -89,7 +89,8 @@ public class InCondition extends Condition {
         }
     }
 
-    private String generateName() {
+    @Override
+    protected String generateName() {
         return String.format("%s %s %s", this.field, IN, this.value);
     }
 
