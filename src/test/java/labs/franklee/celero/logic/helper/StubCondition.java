@@ -30,6 +30,11 @@ public class StubCondition extends Condition {
     }
 
     @Override
+    protected String generateName() {
+        return "stub";
+    }
+
+    @Override
     public boolean evaluate(Context context) {
         return false;
     }

@@ -64,9 +64,6 @@ public class InCondition extends Condition {
                 throw new InvalidConditionException("value must be a JSON array. value=[" + this.value + "]");
             }
         }
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
-        }
     }
 
     public InCondition(String field, String value, ValueType valueType, int priority) {
@@ -83,9 +80,6 @@ public class InCondition extends Condition {
             } catch (JsonProcessingException e) {
                 throw new InvalidConditionException("value must be a JSON array. value=[" + this.value + "]");
             }
-        }
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
         }
     }
 

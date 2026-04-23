@@ -18,9 +18,6 @@ public class NegateCelCondition extends Condition {
         this.setName("[negated]" + origin.getName());
         this.origin = origin;
         this.expression = "!(" + origin.getExpression() + ")";
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
-        }
     }
 
     @Override

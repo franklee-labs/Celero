@@ -35,9 +35,6 @@ public class NotEqualCondition extends Condition {
         this.field = field;
         this.value = value;
         this.valueType = valueType;
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
-        }
     }
 
     public NotEqualCondition(String field, String value, ValueType valueType, int priority) {
@@ -45,9 +42,6 @@ public class NotEqualCondition extends Condition {
         this.field = field;
         this.value = value;
         this.valueType = valueType;
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
-        }
     }
 
     @Override

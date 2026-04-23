@@ -36,9 +36,6 @@ public class NegateRegexCondition extends Condition {
         this.origin = origin;
         this.field = origin.getField();
         this.regex = origin.getRegex();
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
-        }
     }
 
     @Override

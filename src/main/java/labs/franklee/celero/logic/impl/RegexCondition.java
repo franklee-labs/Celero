@@ -55,18 +55,12 @@ public class RegexCondition extends Condition {
         super();
         this.field = field;
         this.regex = regex;
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
-        }
     }
 
     public RegexCondition(String field, String regex, int priority) {
         super(priority);
         this.field = field;
         this.regex = regex;
-        if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
-        }
     }
 
     @Override
