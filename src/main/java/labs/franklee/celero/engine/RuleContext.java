@@ -1,15 +1,15 @@
 package labs.franklee.celero.engine;
 
-import labs.franklee.celero.rules.Rule;
-
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RuleContext {
 
     private final Map<String, Object> params;
     private final Map<String, Object> attributes = new HashMap<>();
     private boolean enableReports = false;
-    private final Map<Rule, Report> reports = new HashMap<>();
+    private final Map<CeleroRule, Report> reports = new HashMap<>();
 
     private RuleContext(Map<String, Object> params) {
         this.params = params == null ? Collections.emptyMap() : Collections.unmodifiableMap(params);
@@ -32,13 +32,13 @@ public class RuleContext {
         return this;
     }
 
-    void appendRoute(Rule rule, Route route) {
+    void appendRoute(CeleroRule rule, Route route) {
         Report report = this.reports.getOrDefault(rule, new Report());
         report.append(route);
         this.reports.put(rule, report);
     }
 
-    public Map<Rule, Report> getReports() {
+    public Map<CeleroRule, Report> getReports() {
         return reports;
     }
 

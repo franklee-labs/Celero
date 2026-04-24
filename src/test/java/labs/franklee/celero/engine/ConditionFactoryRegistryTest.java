@@ -1,13 +1,12 @@
-package labs.franklee.celero.rules;
+package labs.franklee.celero.engine;
 
 import labs.franklee.celero.exceptions.InvalidRuleNodeException;
 import labs.franklee.celero.logic.base.Priority;
 import labs.franklee.celero.logic.base.ValueType;
+import labs.franklee.celero.rules.ConditionFactoryRegistry;
+import labs.franklee.celero.rules.RuleBuilder;
 import labs.franklee.celero.rules.internal.ConditionFactory;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 
 import java.util.Map;
 
@@ -21,7 +20,7 @@ class ConditionFactoryRegistryTest {
     @Test
     void builtInConditionSigns_allPresent() {
         for (String sign : new String[]{"EQ", "NEQ", "GT", "GTE", "LT", "LTE", "IN", "NIN", "REGEX", "CEL"}) {
-            assertNotNull(
+            Assertions.assertNotNull(
                     ConditionFactoryRegistry.getConditionFactory("any", sign),
                     "missing built-in sign: " + sign
             );
@@ -150,17 +149,14 @@ class ConditionFactoryRegistryTest {
 
         String json = """
                 {
-                  "id": "%s",
-                  "root": {
-                    "id": "%s",
+                    "id": "cond-1",
                     "type": "condition",
                     "sign": "ALWAYS_TRUE"
-                  }
                 }
-                """.formatted(ruleId, "cond-1");
+                """;
 
-        Rule rule = RuleBuilder.fromJson(json).build();
-        assertNotNull(rule.getPathGroup());
+        CeleroRule rule = RuleBuilder.fromJson(ruleId, json).build();
+        assertNotNull(rule.getRule().getPathGroup());
     }
 
     // ---- priority propagation through factories ----

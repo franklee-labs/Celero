@@ -1,13 +1,16 @@
 package labs.franklee.celero.engine;
 
 import labs.franklee.celero.logic.base.EvalResult;
-import labs.franklee.celero.rules.*;
+import labs.franklee.celero.rules.ConditionNode;
+import labs.franklee.celero.rules.RelationNode;
+import labs.franklee.celero.rules.RuleBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdvancedCeleroEngineReportTest {
 
@@ -26,21 +29,21 @@ class AdvancedCeleroEngineReportTest {
         return c;
     }
 
-    private static Rule andRule(String ruleId, ConditionNode... conds) throws Throwable {
+    private static CeleroRule andRule(String ruleId, ConditionNode... conds) throws Throwable {
         RelationNode root = new RelationNode();
         root.setSign("AND");
         root.setChildren(List.of(conds));
         return RuleBuilder.create().id(ruleId).name(ruleId).root(root).build();
     }
 
-    private static Rule orRule(String ruleId, ConditionNode... conds) throws Throwable {
+    private static CeleroRule orRule(String ruleId, ConditionNode... conds) throws Throwable {
         RelationNode root = new RelationNode();
         root.setSign("OR");
         root.setChildren(List.of(conds));
         return RuleBuilder.create().id(ruleId).name(ruleId).root(root).build();
     }
 
-    private static Rule singleRule(String ruleId, String key, String value) throws Throwable {
+    private static CeleroRule singleRule(String ruleId, String key, String value) throws Throwable {
         return RuleBuilder.create()
                 .id(ruleId).name(ruleId)
                 .root(condNode("cond-1", "cond-1-name", key, value))
@@ -48,7 +51,7 @@ class AdvancedCeleroEngineReportTest {
     }
 
     // (B OR C) AND A, paths [B,A] and [C,A], A cacheable — triggers cached-FALSE branch
-    private static Rule buildOrAndRule(String ruleId) throws Throwable {
+    private static CeleroRule buildOrAndRule(String ruleId) throws Throwable {
         ConditionNode condA = condNode("cond-a", "cond-a-name", "role", "admin", true);
         ConditionNode condB = condNode("cond-b", "cond-b-name", "status", "active", false);
         ConditionNode condC = condNode("cond-c", "cond-c-name", "level", "high", false);
@@ -65,7 +68,7 @@ class AdvancedCeleroEngineReportTest {
     }
 
     // AND(A, OR(B,C)), paths [A,B] and [A,C], A cacheable — triggers cached-TRUE and cached-INDETERMINATE branches
-    private static Rule buildAndOrRule(String ruleId) throws Throwable {
+    private static CeleroRule buildAndOrRule(String ruleId) throws Throwable {
         ConditionNode condA = condNode("cond-a", "cond-a-name", "role", "admin", true);
         ConditionNode condB = condNode("cond-b", "cond-b-name", "status", "active", false);
         ConditionNode condC = condNode("cond-c", "cond-c-name", "level", "high", false);
@@ -90,7 +93,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_disabled_condTrue_noReportsGenerated() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleRule("r1", "status", "active");
+        CeleroRule rule = singleRule("r1", "status", "active");
         RuleContext ctx = RuleContext.of(Map.of("status", "active"));
         engine.evaluate(rule, ctx);
         assertTrue(ctx.getReports().isEmpty());
@@ -99,7 +102,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_disabled_condFalse_noReportsGenerated() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleRule("r1", "status", "active");
+        CeleroRule rule = singleRule("r1", "status", "active");
         RuleContext ctx = RuleContext.of(Map.of("status", "inactive"));
         engine.evaluate(rule, ctx);
         assertTrue(ctx.getReports().isEmpty());
@@ -109,7 +112,7 @@ class AdvancedCeleroEngineReportTest {
     void report_disabled_cachedCondFalse_noReportsGenerated() throws Throwable {
         // (B OR C) AND A: A cached as FALSE after path1 — report disabled, cached-FALSE branch must NOT append
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = buildOrAndRule("r1");
+        CeleroRule rule = buildOrAndRule("r1");
         RuleContext ctx = RuleContext.of(Map.of("role", "user", "status", "active", "level", "high"));
         engine.evaluate(rule, ctx);
         assertTrue(ctx.getReports().isEmpty());
@@ -120,7 +123,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_singleCond_true_matchedContainsCond() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleRule("r1", "status", "active");
+        CeleroRule rule = singleRule("r1", "status", "active");
         RuleContext ctx = RuleContext.of(Map.of("status", "active")).setEnableReports(true);
         engine.evaluate(rule, ctx);
 
@@ -134,7 +137,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_singleCond_false_unmatchedContainsCond() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleRule("r1", "status", "active");
+        CeleroRule rule = singleRule("r1", "status", "active");
         RuleContext ctx = RuleContext.of(Map.of("status", "inactive")).setEnableReports(true);
         engine.evaluate(rule, ctx);
 
@@ -148,7 +151,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_singleCond_missing_absentContainsCond() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleRule("r1", "status", "active");
+        CeleroRule rule = singleRule("r1", "status", "active");
         RuleContext ctx = RuleContext.of(Map.of()).setEnableReports(true);
         engine.evaluate(rule, ctx);
 
@@ -164,7 +167,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_andRule_allTrue_allMatched() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "c1-name", "status", "active"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("status", "active", "role", "admin")).setEnableReports(true);
@@ -182,7 +185,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_andRule_firstFalse_unmatched_secondSkipped() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "c1-name", "status", "active"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("status", "inactive", "role", "admin")).setEnableReports(true);
@@ -198,7 +201,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_andRule_firstTrue_secondFalse_noSkipped() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "c1-name", "status", "active"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("status", "active", "role", "user")).setEnableReports(true);
@@ -215,7 +218,7 @@ class AdvancedCeleroEngineReportTest {
     void report_andRule_missFirst_doesNotShortCircuit_absentAndMatched() throws Throwable {
         // AND(MISS, TRUE): MISS must not short-circuit
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "c1-name", "missing-key", "x"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("role", "admin")).setEnableReports(true);
@@ -233,7 +236,7 @@ class AdvancedCeleroEngineReportTest {
     void report_andRule_missFirst_thenFalse_absentAndUnmatched() throws Throwable {
         // AND(MISS, FALSE): MISS doesn't short-circuit, FALSE does
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "c1-name", "missing-key", "x"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("role", "user")).setEnableReports(true);
@@ -250,7 +253,7 @@ class AdvancedCeleroEngineReportTest {
     void report_andRule_firstTrue_secondMiss_matchedAndAbsent() throws Throwable {
         // AND(TRUE, MISS)
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "c1-name", "status", "active"),
                 condNode("c2", "c2-name", "missing-key", "x"));
         RuleContext ctx = RuleContext.of(Map.of("status", "active")).setEnableReports(true);
@@ -266,7 +269,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_andRule_allMiss_allAbsent() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "c1-name", "a", "x"),
                 condNode("c2", "c2-name", "b", "y"));
         RuleContext ctx = RuleContext.of(Map.of()).setEnableReports(true);
@@ -286,7 +289,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_orRule_firstTrue_onlyOneRoute() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = orRule("r1",
+        CeleroRule rule = orRule("r1",
                 condNode("c1", "c1-name", "status", "active"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("status", "active")).setEnableReports(true);
@@ -300,7 +303,7 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_orRule_allFalse_twoRoutes() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = orRule("r1",
+        CeleroRule rule = orRule("r1",
                 condNode("c1", "c1-name", "status", "active"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("status", "inactive", "role", "user")).setEnableReports(true);
@@ -316,7 +319,7 @@ class AdvancedCeleroEngineReportTest {
     void report_orRule_firstFalse_secondMiss_twoRoutes() throws Throwable {
         // OR(FALSE, MISS): both paths evaluated, result = INDETERMINATE
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = orRule("r1",
+        CeleroRule rule = orRule("r1",
                 condNode("c1", "c1-name", "status", "active"),
                 condNode("c2", "c2-name", "missing-key", "x"));
         RuleContext ctx = RuleContext.of(Map.of("status", "inactive")).setEnableReports(true);
@@ -332,7 +335,7 @@ class AdvancedCeleroEngineReportTest {
     void report_orRule_firstMiss_secondTrue_twoRoutes() throws Throwable {
         // OR(MISS, TRUE): both paths evaluated, result = TRUE
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = orRule("r1",
+        CeleroRule rule = orRule("r1",
                 condNode("c1", "c1-name", "missing-key", "x"),
                 condNode("c2", "c2-name", "role", "admin"));
         RuleContext ctx = RuleContext.of(Map.of("role", "admin")).setEnableReports(true);
@@ -350,7 +353,7 @@ class AdvancedCeleroEngineReportTest {
     void report_routeItem_conditionIdAndName_correct() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
         ConditionNode cond = condNode("my-cond-id", "my-cond-name", "x", "y");
-        Rule rule = RuleBuilder.create().id("r1").name("r1").root(cond).build();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("r1").root(cond).build();
         RuleContext ctx = RuleContext.of(Map.of("x", "y")).setEnableReports(true);
         engine.evaluate(rule, ctx);
 
@@ -364,8 +367,8 @@ class AdvancedCeleroEngineReportTest {
     @Test
     void report_multipleRules_separateReportsPerRule() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule r1 = singleRule("r1", "status", "active");
-        Rule r2 = singleRule("r2", "role", "admin");
+        CeleroRule r1 = singleRule("r1", "status", "active");
+        CeleroRule r2 = singleRule("r2", "role", "admin");
         RuleContext ctx = RuleContext.of(Map.of("status", "active", "role", "user")).setEnableReports(true);
         engine.evaluate(List.of(r1, r2), ctx);
 
@@ -383,7 +386,7 @@ class AdvancedCeleroEngineReportTest {
         // path1: B=TRUE, A=FALSE (cached) → route1={matched=[B], unmatched=[A]}
         // path2: C=TRUE, A=cache-hit FALSE → cached-FALSE branch → route2={matched=[C], unmatched=[A]}
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = buildOrAndRule("r1");
+        CeleroRule rule = buildOrAndRule("r1");
         RuleContext ctx = RuleContext.of(Map.of("role", "user", "status", "active", "level", "high")).setEnableReports(true);
         engine.evaluate(rule, ctx);
 
@@ -404,7 +407,7 @@ class AdvancedCeleroEngineReportTest {
         // path1: A=TRUE (cached), B=INDETERMINATE → route1={matched=[A], absent=[B]}
         // path2: A=cache-hit TRUE → cached-TRUE branch (matchedIdx.add), C=INDETERMINATE → route2={matched=[A], absent=[C]}
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = buildAndOrRule("r1");
+        CeleroRule rule = buildAndOrRule("r1");
         RuleContext ctx = RuleContext.of(Map.of("role", "admin")).setEnableReports(true);
         engine.evaluate(rule, ctx);
 
@@ -427,7 +430,7 @@ class AdvancedCeleroEngineReportTest {
         // path1: A=INDETERMINATE (cached), B=FALSE → route1={absent=[A], unmatched=[B]}
         // path2: A=cache-hit INDETERMINATE → cached-INDETERMINATE branch (absentIdx.add), C=FALSE → route2={absent=[A], unmatched=[C]}
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = buildAndOrRule("r1");
+        CeleroRule rule = buildAndOrRule("r1");
         RuleContext ctx = RuleContext.of(Map.of("status", "inactive", "level", "low")).setEnableReports(true);
         engine.evaluate(rule, ctx);
 

@@ -2,6 +2,7 @@ package labs.franklee.celero.rules;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import labs.franklee.celero.engine.CeleroRule;
 import labs.franklee.celero.exceptions.InvalidRuleNodeException;
 
 import java.util.List;
@@ -34,14 +35,11 @@ public class RuleBuilder {
      * </pre>
      * When root is a condition node it is automatically wrapped in an AND relation.
      */
-    public static RuleBuilder fromJson(String json) throws Exception {
-        JsonNode node = MAPPER.readTree(json);
-        RuleNode rawRoot = MAPPER.treeToValue(node.get("root"), RuleNode.class);
+    public static RuleBuilder fromJson(String id, String json) throws Exception {
+        RuleNode node = MAPPER.readValue(json, RuleNode.class);
         return new RuleBuilder()
-                .id(node.path("id").asText(null))
-                .name(node.path("name").asText(null))
-                .description(node.path("description").asText(null))
-                .root(rawRoot);
+                .id(id)
+                .root(node);
     }
 
     public RuleBuilder id(String id) {
@@ -69,7 +67,7 @@ public class RuleBuilder {
         return this;
     }
 
-    public Rule build() throws Throwable {
+    public CeleroRule build() throws Throwable {
         if (this.root == null) {
             throw new IllegalStateException("root must not be null");
         }
@@ -82,7 +80,7 @@ public class RuleBuilder {
         } catch (Throwable t) {
             throw new InvalidRuleNodeException(t);
         }
-        return rule;
+        return new CeleroRule(rule);
     }
 
     private static RelationNode wrapIfNeeded(RuleNode node) {

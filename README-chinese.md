@@ -117,30 +117,38 @@ rule → INDETERMINATE（有路径不确定，且无路径为 TRUE）
 
 ```java
 import labs.franklee.celero.engine.*;
-import labs.franklee.celero.rules.*;
+import labs.franklee.celero.rules.ConditionNode;
+import labs.franklee.celero.rules.Rule;
+import labs.franklee.celero.rules.RuleBuilder;
 
 // 定义条件节点
 ConditionNode statusCondition = new ConditionNode();
-statusCondition.setId("cond-status");
-statusCondition.setSign("EQ");
-statusCondition.setProperties(Map.of(
-    "field", "status",
-    "value", "active",
-    "valueType", "String"
-));
+statusCondition.
 
-// 构建规则
-Rule rule = RuleBuilder.create()
-    .id("rule-001")
-    .name("Active User Check")
-    .root(statusCondition)
-    .build();
+        setId("cond-status");
+statusCondition.
 
-// 评估规则
-DefaultCeleroEngine engine = new DefaultCeleroEngine();
-RuleContext context = RuleContext.of(Map.of("status", "active"));
+        setSign("EQ");
+statusCondition.
 
-boolean result = engine.evaluate(rule, context);  // true
+        setProperties(Map.of(
+                "field", "status",
+                              "value","active",
+                              "valueType","String"
+        ));
+
+        // 构建规则
+        Rule rule = RuleBuilder.create()
+                .id("rule-001")
+                .name("Active User Check")
+                .root(statusCondition)
+                .build();
+
+        // 评估规则
+        DefaultCeleroEngine engine = new DefaultCeleroEngine();
+        RuleContext context = RuleContext.of(Map.of("status", "active"));
+
+        boolean result = engine.evaluate(rule, context);  // true
 ```
 
 ### JSON 构建规则

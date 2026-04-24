@@ -40,14 +40,18 @@ public class RelationNode extends RuleNode {
     }
 
     public Relation createRelation(String sign) throws InvalidRuleNodeException {
+        Relation node;
         if ("and".equalsIgnoreCase(sign)) {
-            return new AND();
+            node = new AND();
         } else if ("or".equalsIgnoreCase(sign)) {
-            return new OR();
+            node = new OR();
         } else if ("not".equalsIgnoreCase(sign)) {
-            return new NOT();
+            node = new NOT();
         } else {
             throw new InvalidRuleNodeException("unsupported relation sign:" + sign + " support sign [AND/OR/NOT]");
         }
+        node.setId(this.getId());
+        node.setName(this.getName());
+        return node;
     }
 }

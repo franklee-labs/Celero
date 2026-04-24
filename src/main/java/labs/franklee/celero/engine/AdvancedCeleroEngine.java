@@ -1,11 +1,13 @@
 package labs.franklee.celero.engine;
 
 import labs.franklee.celero.context.Context;
-import labs.franklee.celero.listener.*;
+import labs.franklee.celero.listener.AdvancedConditionEvent;
+import labs.franklee.celero.listener.AdvancedConditionListener;
+import labs.franklee.celero.listener.AdvancedRuleEvent;
+import labs.franklee.celero.listener.AdvancedRuleListener;
 import labs.franklee.celero.logic.base.Condition;
 import labs.franklee.celero.logic.base.EvalResult;
 import labs.franklee.celero.logic.path.Path;
-import labs.franklee.celero.rules.Rule;
 
 import java.util.*;
 
@@ -30,18 +32,18 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
         ruleListeners.sort(Comparator.comparingInt(AdvancedRuleListener::order));
     }
 
-    public void evaluate(List<Rule> rules, RuleContext ruleContext) {
-        for (Rule rule : rules) {
+    public void evaluate(List<CeleroRule> rules, RuleContext ruleContext) {
+        for (CeleroRule rule : rules) {
             EvalResult result = evaluate(rule, ruleContext);
             AdvancedRuleEvent event = new AdvancedRuleEvent(rule.getId(), rule.getName(), result, ruleContext);
             this.callRuleListeners(event);
         }
     }
 
-    public EvalResult evaluate(Rule rule, RuleContext ruleContext) {
+    public EvalResult evaluate(CeleroRule rule, RuleContext ruleContext) {
         Context context = buildContext(ruleContext, rule.isCacheable(), enableMissingState);
         boolean miss = false;
-        for (Path path : rule.getPathGroup().paths()) {
+        for (Path path : rule.getRule().getPathGroup().paths()) {
             EvalResult result = execute(rule, path, context);
             if (result.isTrue()) {
                 return result;
@@ -53,7 +55,7 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
         return miss ? EvalResult.INDETERMINATE : EvalResult.FALSE;
     }
 
-    private EvalResult execute(Rule rule, Path path, Context context) {
+    private EvalResult execute(CeleroRule rule, Path path, Context context) {
         boolean absent = false;
         Set<Integer> matchedIdx = new HashSet<>();
         Set<Integer> unMatchedIdx = new HashSet<>();

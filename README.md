@@ -117,30 +117,38 @@ Cache lifetime is **scoped to a single rule evaluation** (stored in `Context`); 
 
 ```java
 import labs.franklee.celero.engine.*;
-import labs.franklee.celero.rules.*;
+import labs.franklee.celero.rules.ConditionNode;
+import labs.franklee.celero.rules.Rule;
+import labs.franklee.celero.rules.RuleBuilder;
 
 // Define a condition node
 ConditionNode statusCondition = new ConditionNode();
-statusCondition.setId("cond-status");
-statusCondition.setSign("EQ");
-statusCondition.setProperties(Map.of(
-    "field", "status",
-    "value", "active",
-    "valueType", "String"
-));
+statusCondition.
 
-// Build the rule
-Rule rule = RuleBuilder.create()
-    .id("rule-001")
-    .name("Active User Check")
-    .root(statusCondition)
-    .build();
+        setId("cond-status");
+statusCondition.
 
-// Evaluate
-DefaultCeleroEngine engine = new DefaultCeleroEngine();
-RuleContext context = RuleContext.of(Map.of("status", "active"));
+        setSign("EQ");
+statusCondition.
 
-boolean result = engine.evaluate(rule, context);  // true
+        setProperties(Map.of(
+                "field", "status",
+                              "value","active",
+                              "valueType","String"
+        ));
+
+        // Build the rule
+        Rule rule = RuleBuilder.create()
+                .id("rule-001")
+                .name("Active User Check")
+                .root(statusCondition)
+                .build();
+
+        // Evaluate
+        DefaultCeleroEngine engine = new DefaultCeleroEngine();
+        RuleContext context = RuleContext.of(Map.of("status", "active"));
+
+        boolean result = engine.evaluate(rule, context);  // true
 ```
 
 ### Building a Rule from JSON

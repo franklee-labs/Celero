@@ -4,7 +4,9 @@ import labs.franklee.celero.listener.ConditionEvent;
 import labs.franklee.celero.listener.ConditionListener;
 import labs.franklee.celero.listener.RuleEvent;
 import labs.franklee.celero.listener.RuleListener;
-import labs.franklee.celero.rules.*;
+import labs.franklee.celero.rules.ConditionNode;
+import labs.franklee.celero.rules.RelationNode;
+import labs.franklee.celero.rules.RuleBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -28,7 +30,7 @@ class DefaultCeleroEngineTest {
         return condNode(id, id + "-name", field, value);
     }
 
-    private static Rule singleCondRule(String ruleId, String ruleName, String field, String value) throws Throwable {
+    private static CeleroRule singleCondRule(String ruleId, String ruleName, String field, String value) throws Throwable {
         return RuleBuilder.create()
                 .id(ruleId).name(ruleName)
                 .root(condNode("cond-1", "cond-1-name", field, value))
@@ -40,21 +42,21 @@ class DefaultCeleroEngineTest {
     @Test
     void evaluate_matchingParams_returnsTrue() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
         assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "active"))));
     }
 
     @Test
     void evaluate_nonMatchingParams_returnsFalse() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
         assertFalse(engine.evaluate(rule, RuleContext.of(Map.of("status", "inactive"))));
     }
 
     @Test
     void evaluate_missingParam_returnsFalse() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
         assertFalse(engine.evaluate(rule, RuleContext.of(Map.of())));
     }
 
@@ -68,7 +70,7 @@ class DefaultCeleroEngineTest {
                 condNode("c1", "status", "active"),
                 condNode("c2", "role", "admin")
         ));
-        Rule rule = RuleBuilder.create().id("r1").name("rule1").root(root).build();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("rule1").root(root).build();
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
 
         assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "active", "role", "admin"))));
@@ -82,7 +84,7 @@ class DefaultCeleroEngineTest {
                 condNode("c1", "status", "active"),
                 condNode("c2", "role", "admin")
         ));
-        Rule rule = RuleBuilder.create().id("r1").name("rule1").root(root).build();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("rule1").root(root).build();
 
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
         List<ConditionEvent> events = new ArrayList<>();
@@ -104,7 +106,7 @@ class DefaultCeleroEngineTest {
                 condNode("c1", "status", "active"),
                 condNode("c2", "role", "admin")
         ));
-        Rule rule = RuleBuilder.create().id("r1").name("rule1").root(or).build();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("rule1").root(or).build();
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
 
         assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("role", "admin"))));
@@ -118,7 +120,7 @@ class DefaultCeleroEngineTest {
                 condNode("c1", "status", "active"),
                 condNode("c2", "role", "admin")
         ));
-        Rule rule = RuleBuilder.create().id("r1").name("rule1").root(or).build();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("rule1").root(or).build();
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
 
         assertFalse(engine.evaluate(rule, RuleContext.of(Map.of("status", "inactive", "role", "user"))));
@@ -129,8 +131,8 @@ class DefaultCeleroEngineTest {
     @Test
     void evaluate_list_ruleListener_firedForEachRule() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule r1 = singleCondRule("r1", "rule1", "status", "active");
-        Rule r2 = singleCondRule("r2", "rule2", "role", "admin");
+        CeleroRule r1 = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule r2 = singleCondRule("r2", "rule2", "role", "admin");
 
         List<RuleEvent> events = new ArrayList<>();
         engine.addRuleListener(events::add);
@@ -145,8 +147,8 @@ class DefaultCeleroEngineTest {
     @Test
     void evaluate_list_ruleEvent_matchedFlagCorrect() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule r1 = singleCondRule("r1", "rule1", "status", "active");
-        Rule r2 = singleCondRule("r2", "rule2", "role", "admin");
+        CeleroRule r1 = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule r2 = singleCondRule("r2", "rule2", "role", "admin");
 
         List<RuleEvent> events = new ArrayList<>();
         engine.addRuleListener(events::add);
@@ -160,7 +162,7 @@ class DefaultCeleroEngineTest {
     @Test
     void evaluate_list_ruleEvent_ruleNameCorrect() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "my-rule", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "my-rule", "status", "active");
 
         List<RuleEvent> events = new ArrayList<>();
         engine.addRuleListener(events::add);
@@ -173,7 +175,7 @@ class DefaultCeleroEngineTest {
     @Test
     void evaluate_list_ruleEvent_containsRuleContext() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<RuleEvent> events = new ArrayList<>();
         engine.addRuleListener(events::add);
@@ -189,7 +191,7 @@ class DefaultCeleroEngineTest {
     @Test
     void conditionListener_firedOnConditionExecution() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<ConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -202,7 +204,7 @@ class DefaultCeleroEngineTest {
     @Test
     void conditionListener_event_hasCorrectRuleAndConditionIds() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<ConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -219,7 +221,7 @@ class DefaultCeleroEngineTest {
     @Test
     void conditionListener_event_matchedTrue_whenConditionPasses() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<ConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -232,7 +234,7 @@ class DefaultCeleroEngineTest {
     @Test
     void conditionListener_event_matchedFalse_whenConditionFails() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<ConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -245,7 +247,7 @@ class DefaultCeleroEngineTest {
     @Test
     void conditionListener_event_containsRuleContext() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<ConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -261,7 +263,7 @@ class DefaultCeleroEngineTest {
     @Test
     void conditionListener_calledInAscendingOrder() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<Integer> callOrder = new ArrayList<>();
         engine.addConditionListener(new ConditionListener() {
@@ -281,7 +283,7 @@ class DefaultCeleroEngineTest {
     @Test
     void ruleListener_calledInAscendingOrder() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<Integer> callOrder = new ArrayList<>();
         engine.addRuleListener(new RuleListener() {
@@ -303,7 +305,7 @@ class DefaultCeleroEngineTest {
     @Test
     void conditionListener_exceptionSwallowed_evaluationContinues() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         engine.addConditionListener(e -> { throw new RuntimeException("boom"); });
 
@@ -315,7 +317,7 @@ class DefaultCeleroEngineTest {
     @Test
     void ruleListener_exceptionSwallowed_subsequentListenerStillCalled() throws Throwable {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         engine.addRuleListener(new RuleListener() {
             public void onRuleResult(RuleEvent e) { throw new RuntimeException("boom"); }

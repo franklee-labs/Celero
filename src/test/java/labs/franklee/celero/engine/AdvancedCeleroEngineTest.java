@@ -6,7 +6,6 @@ import labs.franklee.celero.listener.AdvancedRuleEvent;
 import labs.franklee.celero.listener.AdvancedRuleListener;
 import labs.franklee.celero.rules.ConditionNode;
 import labs.franklee.celero.rules.RelationNode;
-import labs.franklee.celero.rules.Rule;
 import labs.franklee.celero.rules.RuleBuilder;
 import org.junit.jupiter.api.Test;
 
@@ -31,21 +30,21 @@ class AdvancedCeleroEngineTest {
         return condNode(id, id + "-name", field, value);
     }
 
-    private static Rule singleCondRule(String ruleId, String ruleName, String field, String value) throws Throwable {
+    private static CeleroRule singleCondRule(String ruleId, String ruleName, String field, String value) throws Throwable {
         return RuleBuilder.create()
                 .id(ruleId).name(ruleName)
                 .root(condNode("cond-1", "cond-1-name", field, value))
                 .build();
     }
 
-    private static Rule andRule(String ruleId, ConditionNode... conds) throws Throwable {
+    private static CeleroRule andRule(String ruleId, ConditionNode... conds) throws Throwable {
         RelationNode root = new RelationNode();
         root.setSign("AND");
         root.setChildren(List.of(conds));
         return RuleBuilder.create().id(ruleId).name(ruleId).root(root).build();
     }
 
-    private static Rule orRule(String ruleId, ConditionNode... conds) throws Throwable {
+    private static CeleroRule orRule(String ruleId, ConditionNode... conds) throws Throwable {
         RelationNode root = new RelationNode();
         root.setSign("OR");
         root.setChildren(List.of(conds));
@@ -57,14 +56,14 @@ class AdvancedCeleroEngineTest {
     @Test
     void evaluate_allConditionsMatch_returnsTrue() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
         assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "active"))).isTrue());
     }
 
     @Test
     void evaluate_conditionFails_returnsFalse() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
         assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "inactive"))).isFalse());
     }
 
@@ -73,7 +72,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void evaluate_missingParam_singlePath_returnsMiss() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
         assertTrue(engine.evaluate(rule, RuleContext.of(Map.of())).isIndeterminate());
     }
 
@@ -81,7 +80,7 @@ class AdvancedCeleroEngineTest {
     void evaluate_conditionFalse_overridesMiss_returnsFalse() throws Throwable {
         // AND(MISS, FALSE) → path = FALSE (FALSE takes priority over MISS)
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "missing-key", "x"),   // MISS
                 condNode("c2", "role", "admin")         // FALSE (role=user)
         );
@@ -92,7 +91,7 @@ class AdvancedCeleroEngineTest {
     void evaluate_conditionMissOnly_pathReturnsMiss() throws Throwable {
         // AND(MISS, MISS) → path = MISS
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "a", "x"),
                 condNode("c2", "b", "y")
         );
@@ -103,7 +102,7 @@ class AdvancedCeleroEngineTest {
     void evaluate_missDoesNotShortCircuit_remainingConditionsEvaluated() throws Throwable {
         // AND(MISS, FALSE) — MISS must not short-circuit; FALSE must still be evaluated
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "missing-key", "x"),
                 condNode("c2", "role", "admin")
         );
@@ -122,7 +121,7 @@ class AdvancedCeleroEngineTest {
     void evaluate_falseShortCircuits_remainingConditionsNotEvaluated() throws Throwable {
         // AND(FALSE, ...) — FALSE must short-circuit
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "status", "active"),
                 condNode("c2", "role", "admin")
         );
@@ -142,7 +141,7 @@ class AdvancedCeleroEngineTest {
     void evaluate_orRule_oneMiss_oneTrue_returnsTrue() throws Throwable {
         // OR(MISS, TRUE) → TRUE
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = orRule("r1",
+        CeleroRule rule = orRule("r1",
                 condNode("c1", "missing-key", "x"),
                 condNode("c2", "role", "admin")
         );
@@ -153,7 +152,7 @@ class AdvancedCeleroEngineTest {
     void evaluate_orRule_oneFalse_oneMiss_returnsMiss() throws Throwable {
         // OR(FALSE, MISS) → MISS
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = orRule("r1",
+        CeleroRule rule = orRule("r1",
                 condNode("c1", "status", "active"),
                 condNode("c2", "missing-key", "x")
         );
@@ -163,7 +162,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void evaluate_orRule_allFalse_returnsFalse() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = orRule("r1",
+        CeleroRule rule = orRule("r1",
                 condNode("c1", "status", "active"),
                 condNode("c2", "role", "admin")
         );
@@ -175,8 +174,8 @@ class AdvancedCeleroEngineTest {
     @Test
     void evaluate_list_ruleListener_firedForEachRule() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule r1 = singleCondRule("r1", "rule1", "status", "active");
-        Rule r2 = singleCondRule("r2", "rule2", "role", "admin");
+        CeleroRule r1 = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule r2 = singleCondRule("r2", "rule2", "role", "admin");
 
         List<AdvancedRuleEvent> events = new ArrayList<>();
         engine.addRuleListener(events::add);
@@ -191,9 +190,9 @@ class AdvancedCeleroEngineTest {
     @Test
     void evaluate_list_ruleEvent_evalResultCorrect() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule r1 = singleCondRule("r1", "rule1", "status", "active");
-        Rule r2 = singleCondRule("r2", "rule2", "role", "admin");
-        Rule r3 = singleCondRule("r3", "rule3", "missing-key", "x");
+        CeleroRule r1 = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule r2 = singleCondRule("r2", "rule2", "role", "admin");
+        CeleroRule r3 = singleCondRule("r3", "rule3", "missing-key", "x");
 
         List<AdvancedRuleEvent> events = new ArrayList<>();
         engine.addRuleListener(events::add);
@@ -208,7 +207,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void evaluate_list_ruleEvent_ruleNameAndContextCorrect() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "my-rule", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "my-rule", "status", "active");
 
         List<AdvancedRuleEvent> events = new ArrayList<>();
         engine.addRuleListener(events::add);
@@ -225,7 +224,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_firedOnEachCondition() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = andRule("r1",
+        CeleroRule rule = andRule("r1",
                 condNode("c1", "status", "active"),
                 condNode("c2", "role", "admin")
         );
@@ -241,7 +240,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_event_hasCorrectIds() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<AdvancedConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -258,7 +257,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_event_evalResultTrue_whenMatch() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<AdvancedConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -271,7 +270,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_event_evalResultFalse_whenNoMatch() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<AdvancedConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -284,7 +283,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_event_evalResultMiss_whenParamMissing() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<AdvancedConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -297,7 +296,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_event_containsRuleContext() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<AdvancedConditionEvent> events = new ArrayList<>();
         engine.addConditionListener(events::add);
@@ -313,7 +312,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_calledInAscendingOrder() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<Integer> callOrder = new ArrayList<>();
         engine.addConditionListener(new AdvancedConditionListener() {
@@ -333,7 +332,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void ruleListener_calledInAscendingOrder() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         List<Integer> callOrder = new ArrayList<>();
         engine.addRuleListener(new AdvancedRuleListener() {
@@ -355,7 +354,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void conditionListener_exceptionSwallowed_evaluationContinues() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         engine.addConditionListener(e -> { throw new RuntimeException("boom"); });
 
@@ -367,7 +366,7 @@ class AdvancedCeleroEngineTest {
     @Test
     void ruleListener_exceptionSwallowed_subsequentListenerStillCalled() throws Throwable {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
-        Rule rule = singleCondRule("r1", "rule1", "status", "active");
+        CeleroRule rule = singleCondRule("r1", "rule1", "status", "active");
 
         engine.addRuleListener(new AdvancedRuleListener() {
             public void onRuleResult(AdvancedRuleEvent e) { throw new RuntimeException("boom"); }

@@ -8,7 +8,6 @@ import labs.franklee.celero.logic.base.ValueType;
 import labs.franklee.celero.logic.impl.EqualCondition;
 import labs.franklee.celero.rules.ConditionNode;
 import labs.franklee.celero.rules.RelationNode;
-import labs.franklee.celero.rules.Rule;
 import labs.franklee.celero.rules.RuleBuilder;
 import org.junit.jupiter.api.Test;
 
@@ -159,14 +158,14 @@ class ConditionCacheTest {
 
     @Test
     void rule_cacheable_true_isCacheableReturnsTrue() throws Throwable {
-        Rule rule = RuleBuilder.create().id("r1").name("rule1").cacheable(true)
+        CeleroRule rule = RuleBuilder.create().id("r1").name("rule1").cacheable(true)
                 .root(condNode("c1", "status", "active", true)).build();
         assertTrue(rule.isCacheable());
     }
 
     @Test
     void rule_cacheable_false_isCacheableReturnsFalse() throws Throwable {
-        Rule rule = RuleBuilder.create().id("r1").name("rule1").cacheable(false)
+        CeleroRule rule = RuleBuilder.create().id("r1").name("rule1").cacheable(false)
                 .root(condNode("c1", "status", "active", true)).build();
         assertFalse(rule.isCacheable());
     }
@@ -188,7 +187,7 @@ class ConditionCacheTest {
     //   path2: eval A again, eval C → fails
     //   events = [A, B, A, C] → size 4, A fires twice
 
-    private static Rule buildAndOrRule(String ruleId, boolean ruleCacheable,
+    private static CeleroRule buildAndOrRule(String ruleId, boolean ruleCacheable,
                                        boolean condACacheable) throws Throwable {
         ConditionNode condA = condNode("cond-a", "role", "admin", condACacheable);
         ConditionNode condB = condNode("cond-b", "status", "active", false);
@@ -206,7 +205,7 @@ class ConditionCacheTest {
                 .cacheable(ruleCacheable).root(andNode).build();
     }
 
-    private static Rule buildAndOrRule2(String ruleId, boolean ruleCacheable,
+    private static CeleroRule buildAndOrRule2(String ruleId, boolean ruleCacheable,
                                        boolean condACacheable) throws Throwable {
         // (B OR C) AND A
         ConditionNode condA = condNode("cond-a", "role", "admin", condACacheable);
@@ -226,7 +225,7 @@ class ConditionCacheTest {
                 .cacheable(ruleCacheable).root(andNode).build();
     }
 
-    private static Rule buildAndOrRule3(String ruleId, boolean ruleCacheable,
+    private static CeleroRule buildAndOrRule3(String ruleId, boolean ruleCacheable,
                                         boolean condACacheable) throws Throwable {
         // A AND (B OR C)
         ConditionNode condA = condNode("cond-a", "role", "admin", condACacheable);
@@ -250,7 +249,7 @@ class ConditionCacheTest {
 
     @Test
     void engine_cacheEnabled_condACacheable_firesThreeTimes_AOnlyOnce() throws Throwable {
-        Rule rule = buildAndOrRule("r-cache-on", true, true);
+        CeleroRule rule = buildAndOrRule("r-cache-on", true, true);
 
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
         List<ConditionEvent> events = new ArrayList<>();
@@ -266,7 +265,7 @@ class ConditionCacheTest {
 
     @Test
     void engine_cacheEnabled_condACacheable_falseValue_firesThreeTimes_AOnlyOnce() throws Throwable {
-        Rule rule = buildAndOrRule2("r-cache-on", true, true);
+        CeleroRule rule = buildAndOrRule2("r-cache-on", true, true);
 
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
         List<ConditionEvent> events = new ArrayList<>();
@@ -282,7 +281,7 @@ class ConditionCacheTest {
 
     @Test
     void engine_cacheDisabled_firesFourTimes_ATwice() throws Throwable {
-        Rule rule = buildAndOrRule("r-cache-off", false, true);
+        CeleroRule rule = buildAndOrRule("r-cache-off", false, true);
 
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
         List<ConditionEvent> events = new ArrayList<>();
@@ -298,7 +297,7 @@ class ConditionCacheTest {
 
     @Test
     void engine_cacheEnabled_condANotCacheable_firesFourTimes_ATwice() throws Throwable {
-        Rule rule = buildAndOrRule("r-cache-on-nc", true, false);
+        CeleroRule rule = buildAndOrRule("r-cache-on-nc", true, false);
 
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
         List<ConditionEvent> events = new ArrayList<>();
@@ -314,7 +313,7 @@ class ConditionCacheTest {
 
     @Test
     void advancedEngine_cacheEnabled_condACacheable_firesThreeTimes_AOnlyOnce() throws Throwable {
-        Rule rule = buildAndOrRule("r-cache-on", true, true);
+        CeleroRule rule = buildAndOrRule("r-cache-on", true, true);
 
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
         List<AdvancedConditionEvent> events = new ArrayList<>();
@@ -330,7 +329,7 @@ class ConditionCacheTest {
 
     @Test
     void advancedEngine_cacheEnabled_condACacheable_falseValue_firesThreeTimes_AOnlyOnce() throws Throwable {
-        Rule rule = buildAndOrRule2("r-cache-on", true, true);
+        CeleroRule rule = buildAndOrRule2("r-cache-on", true, true);
 
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
         List<AdvancedConditionEvent> events = new ArrayList<>();
@@ -346,7 +345,7 @@ class ConditionCacheTest {
 
     @Test
     void advancedEngine_cacheDisabled_firesFourTimes_ATwice() throws Throwable {
-        Rule rule = buildAndOrRule("r-cache-off", false, true);
+        CeleroRule rule = buildAndOrRule("r-cache-off", false, true);
 
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
         List<AdvancedConditionEvent> events = new ArrayList<>();
@@ -362,7 +361,7 @@ class ConditionCacheTest {
 
     @Test
     void advancedEngine_cacheEnabled_condANotCacheable_firesFourTimes_ATwice() throws Throwable {
-        Rule rule = buildAndOrRule("r-cache-on-nc", true, false);
+        CeleroRule rule = buildAndOrRule("r-cache-on-nc", true, false);
 
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
         List<AdvancedConditionEvent> events = new ArrayList<>();
@@ -378,7 +377,7 @@ class ConditionCacheTest {
 
     @Test
     void advancedEngine_cacheEnabled_condACacheable_absent_firesThreeTimes_AOnce() throws Throwable {
-        Rule rule = buildAndOrRule3("r-cache-on-nc", true, true);
+        CeleroRule rule = buildAndOrRule3("r-cache-on-nc", true, true);
 
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
         List<AdvancedConditionEvent> events = new ArrayList<>();
