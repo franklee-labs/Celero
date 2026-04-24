@@ -1,6 +1,5 @@
 package labs.franklee.celero.rules;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import labs.franklee.celero.engine.CeleroRule;
 import labs.franklee.celero.exceptions.InvalidRuleNodeException;
@@ -27,10 +26,12 @@ public class RuleBuilder {
      * JSON format — root can be a relation node or a single condition node:
      * <pre>
      * {
-     *   "id": "rule-001",
-     *   "name": "...",
-     *   "description": "...",
-     *   "root": { "type": "relation"|"condition", "sign": "...", ... }
+     *   "type": "relation"|"condition",
+     *   "sign": "EQ",
+     *   "field": "f1",
+     *   "value": "123",
+     *   "valueType": "Number"
+     *   ...
      * }
      * </pre>
      * When root is a condition node it is automatically wrapped in an AND relation.

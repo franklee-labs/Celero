@@ -165,7 +165,7 @@ class ConditionFactoryRegistryTest {
     void factory_withPriority_conditionHasExpectedPriority() {
         for (String sign : new String[]{"EQ", "NEQ", "GT", "GTE", "LT", "LTE"}) {
             ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", sign);
-            var props = Map.<String, Object>of("key", "x", "value", "1", "valueType", "Number", "priority", 10);
+            var props = Map.<String, Object>of("field", "x", "value", "1", "valueType", "Number", "priority", 10);
             assertEquals(10, factory.create(props).getPriority(), "priority mismatch for sign: " + sign);
         }
     }
@@ -174,7 +174,7 @@ class ConditionFactoryRegistryTest {
     void factory_withoutPriority_conditionHasDefaultPriority() {
         for (String sign : new String[]{"EQ", "NEQ", "GT", "GTE", "LT", "LTE"}) {
             ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", sign);
-            var props = Map.<String, Object>of("key", "x", "value", "1", "valueType", "Number");
+            var props = Map.<String, Object>of("field", "x", "value", "1", "valueType", "Number");
             assertEquals(Priority.DEFAULT, factory.create(props).getPriority(), "expected default priority for sign: " + sign);
         }
     }
@@ -197,7 +197,7 @@ class ConditionFactoryRegistryTest {
     void inFactory_withPriority_conditionHasExpectedPriority() {
         for (String sign : new String[]{"IN", "NIN"}) {
             ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", sign);
-            var props = Map.<String, Object>of("key", "x", "value", "[1,2,3]", "valueType", "Number", "priority", 7);
+            var props = Map.<String, Object>of("field", "x", "value", "[1,2,3]", "valueType", "Number", "priority", 7);
             assertEquals(7, factory.create(props).getPriority(), "priority mismatch for sign: " + sign);
         }
     }
@@ -205,7 +205,7 @@ class ConditionFactoryRegistryTest {
     @Test
     void regexFactory_withPriority_conditionHasExpectedPriority() {
         ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", "REGEX");
-        var props = Map.<String, Object>of("key", "x", "value", "^abc$", "priority", 3);
+        var props = Map.<String, Object>of("field", "x", "value", "^abc$", "priority", 3);
         assertEquals(3, factory.create(props).getPriority());
     }
 }
