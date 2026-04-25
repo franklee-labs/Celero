@@ -1,6 +1,7 @@
 package labs.franklee.celero.logic.impl;
 
 import dev.cel.bundle.Cel;
+import dev.cel.bundle.CelBuilder;
 import dev.cel.bundle.CelFactory;
 import dev.cel.common.CelAbstractSyntaxTree;
 import dev.cel.common.ast.CelExpr;
@@ -27,7 +28,7 @@ public class CelUtils {
     }
 
     static Cel buildCelWithVars(Set<String> varNames, Map<String, CelType> types) {
-        var builder = CelFactory.standardCelBuilder();
+        CelBuilder builder = CelFactory.standardCelBuilder();
         if (types == null || types.isEmpty()) {
             varNames.forEach(v -> builder.addVar(v, SimpleType.DYN));
         } else {

@@ -2,13 +2,26 @@ package labs.franklee.celero.cel;
 
 import dev.cel.bundle.Cel;
 import dev.cel.bundle.CelFactory;
+import dev.cel.common.CelAbstractSyntaxTree;
 import dev.cel.common.CelValidationException;
+import dev.cel.common.ast.CelExpr;
+import dev.cel.common.navigation.CelNavigableAst;
 import dev.cel.common.types.MapType;
 import dev.cel.common.types.SimpleType;
+import dev.cel.compiler.CelCompiler;
+import dev.cel.compiler.CelCompilerBuilder;
+import dev.cel.compiler.CelCompilerFactory;
+import dev.cel.parser.CelStandardMacro;
+import dev.cel.runtime.CelRuntime;
+import dev.cel.runtime.CelRuntimeFactory;
 import dev.cel.runtime.CelUnknownSet;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -153,4 +166,158 @@ class CelHasMacroTest {
         assertTrue(present instanceof Boolean b && b);
         assertTrue(absent instanceof Boolean b && !b);
     }
+
+    // ============================================
+
+    private Set<String> extract(String expression) throws Throwable {
+        Cel parser = CelFactory.standardCelBuilder().build();
+        CelAbstractSyntaxTree parsed = parser.parse(expression).getAst();
+        return CelNavigableAst.fromAst(parsed)
+                .getRoot()
+                .allNodes()
+                .filter(node -> node.getKind() == CelExpr.ExprKind.Kind.IDENT)
+                .map(node -> node.expr().ident().name())
+                .collect(Collectors.toSet());
+    }
+
+    @Test
+    void extract_has_macro_true() throws Throwable {
+        String expression = "has(params.age)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("params", Map.of("age", 10)));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void extract_has_macro_true_valNull() throws Throwable {
+        String expression = "has(params.age)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Map<String, Object> p = new HashMap<>();
+        p.put("age", null);
+        Object o = program.eval(Map.of("params", p));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void extract_has_macro_false() throws Throwable {
+        String expression = "has(params.age)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("params", Map.of("size", 10)));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && !b);
+    }
+
+    @Test
+    void extract_notHas_macro_true() throws Throwable {
+        String expression = "!(has(params.age))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("params", Map.of("size", 10)));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void extract_has_macro_unknown() throws Throwable {
+        String expression = "has(params.age)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("age", 10));
+        System.out.println(o);
+        assertInstanceOf(CelUnknownSet.class, o);
+    }
+
+    @Test
+    void extract_has_macro_true_list() throws Throwable {
+        String expression = "has(params.locations)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("params", Map.of("locations", List.of("111", "222", "333"))));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void extract_has_macro_true_object() throws Throwable {
+        String expression = "has(params.location)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("params", Map.of("location", Map.of("number", 12))));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void extract_has_macro_true_field() throws Throwable {
+        String expression = "has(age)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        assertThrows(CelValidationException.class, () -> compiler.compile(expression).getAst());
+    }
+
 }
