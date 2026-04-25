@@ -240,6 +240,26 @@ class CelExtractVarTest {
     }
 
     @Test
+    void extract_Filter_contains_multi_type() throws Throwable {
+        String expression = "list1.filter(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of("11", 22, true), "list2", List.of("aa", 22, false)));
+        System.out.println(o);
+        assertInstanceOf(List.class, o);
+        assertEquals(1, ((List<Object>)o).size());
+        assertEquals(22L, ((List<Object>)o).get(0));  // o.get(0) is long, not int
+    }
+
+    @Test
     void extract_Filter_notContains() throws Throwable {
         String expression = "list1.filter(x, list2.exists(y, y == x))";
         Set<String> vars = extract(expression);
