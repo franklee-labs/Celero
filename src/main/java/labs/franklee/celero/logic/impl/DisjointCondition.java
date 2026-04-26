@@ -51,6 +51,8 @@ public class DisjointCondition extends Condition {
 
     private void setValueType(String valueType1, String valueType2) {
         try {
+            this.valueTypeStr1 = valueType1;
+            this.valueTypeStr2 = valueType2;
             this.valueType1 = ValueType.fromString(valueType1);
             this.valueType2 = ValueType.fromString(valueType2);
         } catch (IllegalArgumentException e) {
