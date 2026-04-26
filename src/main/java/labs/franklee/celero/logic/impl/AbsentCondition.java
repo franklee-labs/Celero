@@ -5,27 +5,29 @@ import labs.franklee.celero.context.Context;
 import labs.franklee.celero.exceptions.MissingParameterException;
 import labs.franklee.celero.logic.base.Condition;
 
-public class ExistsCondition extends Condition {
-
+/**
+ * Logical inverse of {@link ExistsCondition}
+ */
+public class AbsentCondition extends Condition {
     private final String field;
     private final String expression;
     private CelRuntime.Program program;
 
-    public ExistsCondition(String field) {
+    public AbsentCondition(String field) {
         this.field = field;
-        this.expression = "has(" + field + ")";
+        this.expression = "!has(" + field + ")";
     }
 
-    public ExistsCondition(String field, int priority) {
+    public AbsentCondition(String field, int priority) {
         super(priority, false);
         this.field = field;
-        this.expression = "has(" + field + ")";
+        this.expression = "!has(" + field + ")";
     }
 
-    public ExistsCondition(String field, int priority, boolean ignoreAbsence) {
+    public AbsentCondition(String field, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.field = field;
-        this.expression = "has(" + field + ")";
+        this.expression = "!has(" + field + ")";
     }
 
     @Override
@@ -50,7 +52,7 @@ public class ExistsCondition extends Condition {
 
     @Override
     public Condition negate() throws Exception {
-        Condition condition = new AbsentCondition(this.field, this.getPriority(), this.isIgnoreAbsence());
+        Condition condition = new ExistsCondition(this.field, this.getPriority(), this.isIgnoreAbsence());
         condition.build();
         return condition;
     }

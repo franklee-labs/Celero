@@ -24,6 +24,8 @@ public class ConditionFactoryRegistry {
         globalFactories.put("CEL",     new CelConditionFactory());
         globalFactories.put("INTERSECT", new IntersectConditionFactory());
         globalFactories.put("DISJOINT", new DisjointConditionFactory());
+        globalFactories.put("EXISTS", new ExistsConditionFactory());
+        globalFactories.put("ABSENT", new AbsentConditionFactory());
 
         internalSigns.addAll(globalFactories.keySet());
         internalSigns.addAll(Set.of("AND", "OR", "NOT"));

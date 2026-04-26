@@ -15,6 +15,9 @@ import labs.franklee.celero.logic.base.ValueType;
 
 import java.util.*;
 
+/**
+ * Logical inverse of {@link IntersectCondition}
+ */
 public class DisjointCondition extends Condition {
 
     private final String field1;
