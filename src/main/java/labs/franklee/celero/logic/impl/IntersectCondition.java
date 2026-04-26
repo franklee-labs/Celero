@@ -32,6 +32,13 @@ public class IntersectCondition extends Condition {
         this.setValueType(valueType1, valueType2);
     }
 
+    public IntersectCondition(String field1, String valueType1, String field2, String valueType2, int priority) {
+        super(priority, false);
+        this.field1 = field1;
+        this.field2 = field2;
+        this.setValueType(valueType1, valueType2);
+    }
+
     public IntersectCondition(String field1, String valueType1, String field2, String valueType2, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.field1 = field1;

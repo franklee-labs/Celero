@@ -63,6 +63,23 @@ public class InCondition extends Condition {
         }
     }
 
+    public InCondition(String field, String value, ValueType valueType, int priority) {
+        super(priority, false);
+        this.field = field;
+        this.value = value;
+        this.valueType = valueType;
+        if (null == this.value) {
+            throw new InvalidConditionException("value must be a JSON array. got null");
+        }
+        if (ValueType.List.equals(this.valueType)) {
+            try {
+                this.listValues = mapper.readValue(this.value, new TypeReference<>() {});
+            } catch (JsonProcessingException e) {
+                throw new InvalidConditionException("value must be a JSON array. value=[" + this.value + "]");
+            }
+        }
+    }
+
     public InCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.field = field;
@@ -87,7 +104,7 @@ public class InCondition extends Condition {
 
     @Override
     public Condition negate() throws Exception {
-        Condition condition = new NotInCondition(this.field, this.value, this.valueType, this.getPriority());
+        Condition condition = new NotInCondition(this.field, this.value, this.valueType, this.getPriority(), this.isIgnoreAbsence());
         condition.build();
         return condition;
     }

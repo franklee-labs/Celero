@@ -16,7 +16,7 @@ public class StubCondition extends Condition {
     }
 
     public StubCondition(String name, int priority) {
-        super(priority);
+        super(priority, false);
         this.name = name;
     }
 
@@ -32,6 +32,16 @@ public class StubCondition extends Condition {
     @Override
     protected String generateName() {
         return "stub";
+    }
+
+    @Override
+    public void compile() throws Exception {
+
+    }
+
+    @Override
+    public void beforeEvaluate(Context context) {
+
     }
 
     @Override

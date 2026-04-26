@@ -14,6 +14,11 @@ public class CelCondition extends Condition {
         this.expression = expression;
     }
 
+    public CelCondition(String expression, int priority) {
+        super(priority, false);
+        this.expression = expression;
+    }
+
     public CelCondition(String expression, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.expression = expression;

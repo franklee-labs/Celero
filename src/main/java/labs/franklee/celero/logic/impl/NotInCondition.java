@@ -53,6 +53,23 @@ public class NotInCondition extends Condition {
         }
     }
 
+    public NotInCondition(String field, String value, ValueType valueType, int priority) {
+        super(priority, false);
+        this.field = field;
+        this.value = value;
+        this.valueType = valueType;
+        if (null == this.value) {
+            throw new InvalidConditionException("value must be a JSON array. got null");
+        }
+        if (ValueType.List.equals(this.valueType)) {
+            try {
+                this.listValues = mapper.readValue(this.value, new TypeReference<>() {});
+            } catch (JsonProcessingException e) {
+                throw new InvalidConditionException("value must be a JSON array. value=[" + this.value + "]");
+            }
+        }
+    }
+
     public NotInCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.field = field;

@@ -8,6 +8,7 @@ import dev.cel.common.ast.CelExpr;
 import dev.cel.common.navigation.CelNavigableAst;
 import dev.cel.common.types.CelType;
 import dev.cel.common.types.SimpleType;
+import dev.cel.parser.CelStandardMacro;
 import dev.cel.runtime.CelRuntime;
 
 import java.util.Map;
@@ -28,7 +29,7 @@ public class CelUtils {
     }
 
     static Cel buildCelWithVars(Set<String> varNames, Map<String, CelType> types) {
-        CelBuilder builder = CelFactory.standardCelBuilder();
+        CelBuilder builder = CelFactory.standardCelBuilder().setStandardMacros(CelStandardMacro.STANDARD_MACROS);
         if (types == null || types.isEmpty()) {
             varNames.forEach(v -> builder.addVar(v, SimpleType.DYN));
         } else {

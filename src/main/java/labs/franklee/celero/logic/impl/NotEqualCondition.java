@@ -37,6 +37,13 @@ public class NotEqualCondition extends Condition {
         this.valueType = valueType;
     }
 
+    public NotEqualCondition(String field, String value, ValueType valueType, int priority) {
+        super(priority, false);
+        this.field = field;
+        this.value = value;
+        this.valueType = valueType;
+    }
+
     public NotEqualCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.field = field;

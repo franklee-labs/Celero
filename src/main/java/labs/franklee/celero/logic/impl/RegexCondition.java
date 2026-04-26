@@ -57,6 +57,12 @@ public class RegexCondition extends Condition {
         this.regex = regex;
     }
 
+    public RegexCondition(String field, String regex, int priority) {
+        super(priority, false);
+        this.field = field;
+        this.regex = regex;
+    }
+
     public RegexCondition(String field, String regex, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.field = field;
