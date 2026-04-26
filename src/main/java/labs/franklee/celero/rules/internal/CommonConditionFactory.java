@@ -1,5 +1,6 @@
 package labs.franklee.celero.rules.internal;
 
+import labs.franklee.celero.logic.base.Priority;
 import labs.franklee.celero.logic.base.ValueType;
 
 import java.util.Map;
@@ -32,6 +33,11 @@ public abstract class CommonConditionFactory implements ConditionFactory {
 
     protected int priority(Map<String, Object> p) {
         Integer priority = getValueAs(p, "priority", Integer.class);
-        return priority != null ? priority : 0;
+        return priority != null ? priority : Priority.DEFAULT;
+    }
+
+    protected boolean ignoreAbsence(Map<String, Object> p) {
+        Boolean b = getValueAs(p, "ignoreAbsence", Boolean.class);
+        return b != null ? b : false;
     }
 }

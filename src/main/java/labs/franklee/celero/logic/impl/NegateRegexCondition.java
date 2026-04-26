@@ -31,7 +31,7 @@ public class NegateRegexCondition extends Condition {
     private CelRuntime.Program program;
 
     NegateRegexCondition(RegexCondition origin) {
-        super(origin.getPriority());
+        super(origin.getPriority(), origin.isIgnoreAbsence());
         this.setName("[negated]" + origin.getName());
         this.origin = origin;
         this.field = origin.getField();

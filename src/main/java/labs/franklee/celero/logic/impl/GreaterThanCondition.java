@@ -33,8 +33,8 @@ public class GreaterThanCondition extends Condition {
         this.valueType = valueType;
     }
 
-    public GreaterThanCondition(String field, String value, ValueType valueType, int priority) {
-        super(priority);
+    public GreaterThanCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
+        super(priority, ignoreAbsence);
         this.field = field;
         this.value = value;
         this.valueType = valueType;

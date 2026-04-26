@@ -9,6 +9,6 @@ public class GreaterThanConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new GreaterThanCondition(field(properties), value(properties), valueType(properties), priority(properties));
+        return new GreaterThanCondition(field(properties), value(properties), valueType(properties), priority(properties), ignoreAbsence(properties));
     }
 }

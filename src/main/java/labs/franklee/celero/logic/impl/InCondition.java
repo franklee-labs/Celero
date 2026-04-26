@@ -2,7 +2,6 @@ package labs.franklee.celero.logic.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cel.bundle.Cel;
 import dev.cel.common.types.ListType;
 import dev.cel.common.types.SimpleType;
@@ -34,8 +33,6 @@ import java.util.Set;
  */
 public class InCondition extends Condition {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-
     private static final String LIST_KEY = Constant.BUILTIN_KEY + "LIST_001";
 
     private static final String IN = " in ";
@@ -66,8 +63,8 @@ public class InCondition extends Condition {
         }
     }
 
-    public InCondition(String field, String value, ValueType valueType, int priority) {
-        super(priority);
+    public InCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
+        super(priority, ignoreAbsence);
         this.field = field;
         this.value = value;
         this.valueType = valueType;

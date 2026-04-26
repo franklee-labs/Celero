@@ -9,6 +9,6 @@ public class EqualConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new EqualCondition(field(properties), value(properties), valueType(properties), priority(properties));
+        return new EqualCondition(field(properties), value(properties), valueType(properties), priority(properties), ignoreAbsence(properties));
     }
 }

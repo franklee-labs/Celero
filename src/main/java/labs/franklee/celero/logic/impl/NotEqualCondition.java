@@ -37,8 +37,8 @@ public class NotEqualCondition extends Condition {
         this.valueType = valueType;
     }
 
-    public NotEqualCondition(String field, String value, ValueType valueType, int priority) {
-        super(priority);
+    public NotEqualCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
+        super(priority, ignoreAbsence);
         this.field = field;
         this.value = value;
         this.valueType = valueType;
@@ -76,7 +76,7 @@ public class NotEqualCondition extends Condition {
 
     @Override
     public Condition negate() throws Exception {
-        Condition condition = new EqualCondition(this.field, this.value, this.valueType, this.getPriority());
+        Condition condition = new EqualCondition(this.field, this.value, this.valueType, this.getPriority(), this.isIgnoreAbsence());
         condition.build();
         return condition;
     }

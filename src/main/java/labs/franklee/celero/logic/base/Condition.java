@@ -1,5 +1,6 @@
 package labs.franklee.celero.logic.base;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cel.common.CelErrorCode;
 import dev.cel.runtime.CelEvaluationException;
 import dev.cel.runtime.CelRuntime;
@@ -15,9 +16,14 @@ import java.util.UUID;
 
 public abstract class Condition extends Node implements Negatable<Condition> {
 
+    protected static final ObjectMapper mapper = new ObjectMapper();
+
     private final String internalUniqueId;
 
     private boolean cacheable;
+
+    // if set true, return false when param is absent
+    private final boolean ignoreAbsence;
 
     // greater value has lower priority
     private final int priority;
@@ -27,12 +33,14 @@ public abstract class Condition extends Node implements Negatable<Condition> {
     public Condition() {
         this.type = NodeType.Condition;
         this.priority = Priority.DEFAULT;
+        this.ignoreAbsence = false;
         this.internalUniqueId = UUID.randomUUID().toString();
     }
 
-    public Condition(int priority) {
+    public Condition(int priority, boolean ignoreAbsence) {
         this.type = NodeType.Condition;
         this.priority = priority;
+        this.ignoreAbsence = ignoreAbsence;
         this.internalUniqueId = UUID.randomUUID().toString();
     }
 
@@ -58,6 +66,10 @@ public abstract class Condition extends Node implements Negatable<Condition> {
         return this.cacheable;
     }
 
+    public boolean isIgnoreAbsence() {
+        return ignoreAbsence;
+    }
+
     public final int getPriority() {
         return this.priority;
     }
@@ -66,7 +78,7 @@ public abstract class Condition extends Node implements Negatable<Condition> {
         return Validation.VALID;
     }
 
-    public void compile() throws Exception {}
+    public abstract void compile() throws Exception;
 
     public String getExpression() {
         return this.expression;
@@ -90,7 +102,7 @@ public abstract class Condition extends Node implements Negatable<Condition> {
         try {
             result = this.evaluate(context) ? EvalResult.TRUE : EvalResult.FALSE;
         } catch (MissingParameterException e) {
-            result = context.isEnableMissing() ? EvalResult.INDETERMINATE : EvalResult.FALSE;
+            result = !this.isIgnoreAbsence() && context.isEnableMissing() ? EvalResult.INDETERMINATE : EvalResult.FALSE;
         } finally {
             if (context.isEnableConditionResultCache() && this.isCacheable()) {
                 context.setConditionEvalResult(this.getInternalUniqueId(), result);
@@ -99,7 +111,7 @@ public abstract class Condition extends Node implements Negatable<Condition> {
         return result;
     }
 
-    public void beforeEvaluate(Context context) {}
+    public abstract void beforeEvaluate(Context context);
 
     public abstract boolean evaluate(Context context) throws MissingParameterException;
 

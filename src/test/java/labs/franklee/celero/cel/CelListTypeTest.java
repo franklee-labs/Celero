@@ -3,13 +3,24 @@ package labs.franklee.celero.cel;
 import dev.cel.bundle.Cel;
 import dev.cel.bundle.CelFactory;
 import dev.cel.common.CelAbstractSyntaxTree;
+import dev.cel.common.ast.CelExpr;
+import dev.cel.common.navigation.CelNavigableAst;
 import dev.cel.common.types.ListType;
 import dev.cel.common.types.SimpleType;
+import dev.cel.compiler.CelCompiler;
+import dev.cel.compiler.CelCompilerBuilder;
+import dev.cel.compiler.CelCompilerFactory;
+import dev.cel.parser.CelStandardMacro;
 import dev.cel.runtime.CelRuntime;
+import dev.cel.runtime.CelRuntimeFactory;
+import dev.cel.runtime.CelUnknownSet;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -200,5 +211,189 @@ class CelListTypeTest {
         Object result = program.eval(Map.of("val", "unknown", "list", mixed));
         System.out.println("\"unknown\" in [\"admin\", 18L, 99.5, true] → " + result);
         assertFalse((Boolean) result);
+    }
+
+    // =============================== list.filter/exists
+
+    private Set<String> extract(String expression) throws Throwable {
+        Cel parser = CelFactory.standardCelBuilder().build();
+        CelAbstractSyntaxTree parsed = parser.parse(expression).getAst();
+        return CelNavigableAst.fromAst(parsed)
+                .getRoot()
+                .allNodes()
+                .filter(node -> node.getKind() == CelExpr.ExprKind.Kind.IDENT)
+                .map(node -> node.expr().ident().name())
+                .collect(Collectors.toSet());
+    }
+
+
+    @Test
+    void extract_Filter_contains() throws Throwable {
+        String expression = "list1.filter(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of("11", "22", "33"), "list2", List.of("aa", "22", "bb")));
+        System.out.println(o);
+        assertInstanceOf(List.class, o);
+        assertEquals(1, ((List<String>)o).size());
+        assertTrue(((List<String>) o).contains("22"));
+    }
+
+    @Test
+    void extract_Filter_contains_multi_type() throws Throwable {
+        String expression = "list1.filter(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of("11", 22, true), "list2", List.of("aa", 22, false)));
+        System.out.println(o);
+        assertInstanceOf(List.class, o);
+        assertEquals(1, ((List<Object>)o).size());
+        assertEquals(22L, ((List<Object>)o).get(0));  // o.get(0) is long, not int
+    }
+
+    @Test
+    void extract_Filter_notContains() throws Throwable {
+        String expression = "list1.filter(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of("11", "22", "33"), "list2", List.of("aa", "222", "bb")));
+        System.out.println(o);
+        assertInstanceOf(List.class, o);
+        assertEquals(0, ((List<String>)o).size());
+    }
+
+    @Test
+    void extract_Filter_listNull() throws Throwable {
+        String expression = "list1.filter(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Map<String, Object> params = new HashMap<>();
+        params.put("list1", null);
+        params.put("list2", List.of("aa", "222", "bb"));
+        Object o = program.eval(params);
+        System.out.println(o);
+        assertInstanceOf(CelUnknownSet.class, o);
+    }
+
+    @Test
+    void extract_Exists_true() throws Throwable {
+        String expression = "list1.exists(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of("11", "22", "33"), "list2", List.of("aa", "22", "bb")));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void extract_Exists_false() throws Throwable {
+        String expression = "!(list1.exists(x, list2.exists(y, y == x)))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of("11", "22", "33"), "list2", List.of("aa", "222", "bb")));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void extract_emptyList_Exists_false() throws Throwable {
+        String expression = "list1.exists(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of(), "list2", List.of("aa", "222", "bb")));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && !b);
+    }
+
+    @Test
+    void extract_emptyList2_Exists_false() throws Throwable {
+        String expression = "list1.exists(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of("aa", "222", "bb"), "list2", List.of()));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && !b);
+    }
+
+    @Test
+    void extract_emptyList3_Exists_false() throws Throwable {
+        String expression = "list1.exists(x, list2.exists(y, y == x))";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder()
+                .setStandardMacros(CelStandardMacro.STANDARD_MACROS);
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        CelCompiler compiler = builder.build();
+        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
+        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
+                .build();
+        CelRuntime.Program program = runtime.createProgram(ast);
+        Object o = program.eval(Map.of("list1", List.of(), "list2", List.of()));
+        System.out.println(o);
+        assertTrue(o instanceof Boolean b && !b);
     }
 }

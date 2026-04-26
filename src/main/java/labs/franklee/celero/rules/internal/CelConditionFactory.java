@@ -9,6 +9,6 @@ public class CelConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new CelCondition(value(properties), priority(properties));
+        return new CelCondition(value(properties), priority(properties), ignoreAbsence(properties));
     }
 }

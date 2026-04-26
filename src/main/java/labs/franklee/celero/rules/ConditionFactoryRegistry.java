@@ -22,6 +22,8 @@ public class ConditionFactoryRegistry {
         globalFactories.put("NIN",  new NotInConditionFactory());
         globalFactories.put("REGEX",   new RegexConditionFactory());
         globalFactories.put("CEL",     new CelConditionFactory());
+        globalFactories.put("INTERSECT", new IntersectConditionFactory());
+        globalFactories.put("DISJOINT", new DisjointConditionFactory());
 
         internalSigns.addAll(globalFactories.keySet());
         internalSigns.addAll(Set.of("AND", "OR", "NOT"));
@@ -35,7 +37,7 @@ public class ConditionFactoryRegistry {
         if (internalSigns.contains(sign)) {
             throw new InvalidRuleNodeException("sign must not be [" + sign + "]");
         }
-        if (globalFactories.containsKey(sign)) {
+        if (globalFactories.containsKey(sign)) { // duplicate registered
             throw new InvalidRuleNodeException("duplicated sign [" + sign + "]");
         }
         globalFactories.put(sign, factory);

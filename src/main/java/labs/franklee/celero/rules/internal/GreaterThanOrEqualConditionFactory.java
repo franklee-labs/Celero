@@ -9,6 +9,6 @@ public class GreaterThanOrEqualConditionFactory extends CommonConditionFactory {
 
     @Override
     public Condition create(Map<String, Object> properties) {
-        return new GreaterThanOrEqualCondition(field(properties), value(properties), valueType(properties), priority(properties));
+        return new GreaterThanOrEqualCondition(field(properties), value(properties), valueType(properties), priority(properties), ignoreAbsence(properties));
     }
 }

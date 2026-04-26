@@ -14,7 +14,7 @@ public class NegateCelCondition extends Condition {
     private CelRuntime.Program program;
 
     NegateCelCondition(CelCondition origin) {
-        super(origin.getPriority());
+        super(origin.getPriority(), origin.isIgnoreAbsence());
         this.setName("[negated]" + origin.getName());
         this.origin = origin;
         this.expression = "!(" + origin.getExpression() + ")";

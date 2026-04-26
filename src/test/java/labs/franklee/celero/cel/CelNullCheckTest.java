@@ -1,17 +1,18 @@
 package labs.franklee.celero.cel;
 
 import dev.cel.bundle.Cel;
+import dev.cel.bundle.CelBuilder;
 import dev.cel.bundle.CelFactory;
 import dev.cel.common.CelAbstractSyntaxTree;
+import dev.cel.common.CelFunctionDecl;
+import dev.cel.common.CelOverloadDecl;
 import dev.cel.common.ast.CelExpr;
 import dev.cel.common.navigation.CelNavigableAst;
+import dev.cel.common.types.CelType;
 import dev.cel.common.types.SimpleType;
 import dev.cel.common.values.NullValue;
-import dev.cel.compiler.CelCompiler;
-import dev.cel.compiler.CelCompilerBuilder;
-import dev.cel.compiler.CelCompilerFactory;
+import dev.cel.runtime.CelFunctionBinding;
 import dev.cel.runtime.CelRuntime;
-import dev.cel.runtime.CelRuntimeFactory;
 import dev.cel.runtime.CelUnknownSet;
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +37,21 @@ public class CelNullCheckTest {
                 .collect(Collectors.toSet());
     }
 
+    static Cel buildCelWithVars(Set<String> varNames, Map<String, CelType> types) {
+        CelBuilder builder = CelFactory.standardCelBuilder();
+        if (types == null || types.isEmpty()) {
+            varNames.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        } else {
+            varNames.forEach(v -> builder.addVar(v, types.getOrDefault(v, SimpleType.DYN)));
+        }
+        return builder.build();
+    }
+
+    static CelRuntime.Program buildProgram(String expression, Cel cel) throws Exception {
+        CelAbstractSyntaxTree ast = cel.compile(expression).getAst();
+        return cel.createProgram(ast);
+    }
+
     private static Cel buildDynCel(String... varNames) throws Exception {
         var builder = CelFactory.standardCelBuilder();
         for (String v : varNames) builder.addVar(v, SimpleType.DYN);
@@ -47,13 +63,8 @@ public class CelNullCheckTest {
         String expression = "params.location == null";
         Set<String> vars = extract(expression);
         System.out.println(vars);
-        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder();
-        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
-        CelCompiler compiler = builder.build();
-        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
-        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
-                .build();
-        CelRuntime.Program program = runtime.createProgram(ast);
+        Cel compiler = buildCelWithVars(vars, null);
+        CelRuntime.Program program = buildProgram(expression, compiler);
         Map<String, Object> p = new HashMap<>();
         p.put("location", null);
         Object o = program.eval(Map.of("params", p));
@@ -66,18 +77,46 @@ public class CelNullCheckTest {
         String expression = "params.location == null";
         Set<String> vars = extract(expression);
         System.out.println(vars);
-        CelCompilerBuilder builder = CelCompilerFactory.standardCelCompilerBuilder();
-        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
-        CelCompiler compiler = builder.build();
-        CelAbstractSyntaxTree ast = compiler.compile(expression).getAst();
-        CelRuntime runtime = CelRuntimeFactory.standardCelRuntimeBuilder()
-                .build();
-        CelRuntime.Program program = runtime.createProgram(ast);
+        Cel compiler = buildCelWithVars(vars, null);
+        CelRuntime.Program program = buildProgram(expression, compiler);
         Map<String, Object> p = new HashMap<>();
         p.put("location", NullValue.NULL_VALUE);
         Object o = program.eval(Map.of("params", p));
         System.out.println(o);
         assertTrue(o instanceof Boolean b && b);
+    }
+
+    @Test
+    void eval_null() throws Throwable {
+        String expression = "isNull(params.location.number)";
+        Set<String> vars = extract(expression);
+        System.out.println(vars);
+        CelBuilder builder = CelFactory.standardCelBuilder()
+                .addFunctionDeclarations(
+                    CelFunctionDecl.newFunctionDeclaration(
+                            "isNull",
+                            CelOverloadDecl.newGlobalOverload(
+                                    "isNull_dyn",
+                                    SimpleType.BOOL,
+                                    SimpleType.DYN
+                            )
+                    )
+                )
+                .addFunctionBindings(
+                    CelFunctionBinding.from(
+                            "isNull_dyn",
+                            Object.class,
+                            arg -> arg == null || arg instanceof NullValue
+                    )
+                );
+        vars.forEach(v -> builder.addVar(v, SimpleType.DYN));
+        Cel compiler = builder.build();
+
+        CelRuntime.Program program = buildProgram(expression, compiler);
+        Map<String, Object> p = new HashMap<>();
+        p.put("number", null);
+        Object o = program.eval(Map.of("params", Map.of("location", p)));
+        System.out.println(o);
     }
 
     /*

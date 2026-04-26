@@ -38,8 +38,8 @@ public class EqualCondition extends Condition {
         this.valueType = valueType;
     }
 
-    public EqualCondition(String field, String value, ValueType valueType, int priority) {
-        super(priority);
+    public EqualCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
+        super(priority, ignoreAbsence);
         this.field = field;
         this.value = value;
         this.valueType = valueType;

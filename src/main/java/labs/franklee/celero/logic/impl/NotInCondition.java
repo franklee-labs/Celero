@@ -2,7 +2,6 @@ package labs.franklee.celero.logic.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.cel.bundle.Cel;
 import dev.cel.common.types.ListType;
 import dev.cel.common.types.SimpleType;
@@ -23,8 +22,6 @@ import java.util.Set;
  * Negation of {@link InCondition} — see its documentation for value format rules.
  */
 public class NotInCondition extends Condition {
-
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     private static final String LIST_KEY = Constant.BUILTIN_KEY + "LIST_001";
 
@@ -56,8 +53,8 @@ public class NotInCondition extends Condition {
         }
     }
 
-    public NotInCondition(String field, String value, ValueType valueType, int priority) {
-        super(priority);
+    public NotInCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
+        super(priority, ignoreAbsence);
         this.field = field;
         this.value = value;
         this.valueType = valueType;
@@ -80,7 +77,7 @@ public class NotInCondition extends Condition {
 
     @Override
     public Condition negate() throws Exception {
-        Condition condition = new InCondition(this.field, this.value, this.valueType, this.getPriority());
+        Condition condition = new InCondition(this.field, this.value, this.valueType, this.getPriority(), this.isIgnoreAbsence());
         condition.build();
         return condition;
     }
