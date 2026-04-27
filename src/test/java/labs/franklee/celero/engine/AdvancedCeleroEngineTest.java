@@ -4,6 +4,7 @@ import labs.franklee.celero.listener.AdvancedConditionEvent;
 import labs.franklee.celero.listener.AdvancedConditionListener;
 import labs.franklee.celero.listener.AdvancedRuleEvent;
 import labs.franklee.celero.listener.AdvancedRuleListener;
+import labs.franklee.celero.logic.base.EvalResult;
 import labs.franklee.celero.rules.ConditionNode;
 import labs.franklee.celero.rules.RelationNode;
 import labs.franklee.celero.rules.RuleBuilder;
@@ -49,6 +50,13 @@ class AdvancedCeleroEngineTest {
         root.setSign("OR");
         root.setChildren(List.of(conds));
         return RuleBuilder.create().id(ruleId).name(ruleId).root(root).build();
+    }
+
+    private static ConditionNode condNodeIgnoreAbsence(String id, String field, String value) {
+        ConditionNode c = new ConditionNode();
+        c.setType("condition").setSign("EQ").setId(id).setName(id + "-name");
+        c.setProperties(Map.of("field", field, "value", value, "valueType", "String", "ignoreAbsence", true));
+        return c;
     }
 
     // ---- evaluate(Rule) — basic TRUE / FALSE ----
@@ -382,5 +390,111 @@ class AdvancedCeleroEngineTest {
                 engine.evaluate(List.of(rule), RuleContext.of(Map.of("status", "active")))
         );
         assertEquals(1, received.size());
+    }
+
+    // ---- ignoreAbsence ----
+
+    @Test
+    void ignoreAbsence_true_missingParam_returnsFalse() throws Throwable {
+        // ignoreAbsence=true: missing param is treated as FALSE, not INDETERMINATE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("r1")
+                .root(condNodeIgnoreAbsence("c1", "missing-key", "x"))
+                .build();
+        assertTrue(engine.evaluate(rule, RuleContext.of(Map.of())).isFalse());
+    }
+
+    @Test
+    void ignoreAbsence_false_missingParam_returnsIndeterminate() throws Throwable {
+        // ignoreAbsence=false (default): missing param → INDETERMINATE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("r1")
+                .root(condNode("c1", "missing-key", "x"))
+                .build();
+        assertTrue(engine.evaluate(rule, RuleContext.of(Map.of())).isIndeterminate());
+    }
+
+    @Test
+    void ignoreAbsence_true_andRule_missingTreatedAsFalse_returnsFalse() throws Throwable {
+        // AND(ignoreAbsence=true(MISS), TRUE) → missing becomes FALSE → path is FALSE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = andRule("r1",
+                condNodeIgnoreAbsence("c1", "missing-key", "x"),   // MISS → FALSE
+                condNode("c2", "status", "active")                   // TRUE
+        );
+        assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "active"))).isFalse());
+    }
+
+    @Test
+    void ignoreAbsence_false_andRule_missingRemainsIndeterminate() throws Throwable {
+        // AND(ignoreAbsence=false(MISS), TRUE) → MISS stays INDETERMINATE → path is INDETERMINATE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = andRule("r1",
+                condNode("c1", "missing-key", "x"),   // MISS → INDETERMINATE
+                condNode("c2", "status", "active")     // TRUE
+        );
+        assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "active"))).isIndeterminate());
+    }
+
+    @Test
+    void ignoreAbsence_true_orRule_missingTreatedAsFalse_returnsFalse() throws Throwable {
+        // OR(ignoreAbsence=true(MISS), FALSE) → both paths FALSE → rule is FALSE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = orRule("r1",
+                condNodeIgnoreAbsence("c1", "missing-key", "x"),   // MISS → FALSE
+                condNode("c2", "status", "active")                   // FALSE (status=inactive)
+        );
+        assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "inactive"))).isFalse());
+    }
+
+    @Test
+    void ignoreAbsence_false_orRule_missingRemainsIndeterminate() throws Throwable {
+        // OR(ignoreAbsence=false(MISS), FALSE) → one path INDETERMINATE → rule is INDETERMINATE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = orRule("r1",
+                condNode("c1", "missing-key", "x"),   // MISS → INDETERMINATE
+                condNode("c2", "status", "active")     // FALSE (status=inactive)
+        );
+        assertTrue(engine.evaluate(rule, RuleContext.of(Map.of("status", "inactive"))).isIndeterminate());
+    }
+
+    @Test
+    void ignoreAbsence_true_conditionListener_missingParam_eventResultIsFalse() throws Throwable {
+        // ignoreAbsence=true: condition.execute() returns FALSE → listener receives FALSE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = RuleBuilder.create().id("r1").name("r1")
+                .root(condNodeIgnoreAbsence("c1", "missing-key", "x"))
+                .build();
+
+        List<AdvancedConditionEvent> events = new ArrayList<>();
+        engine.addConditionListener(events::add);
+
+        engine.evaluate(rule, RuleContext.of(Map.of()));
+
+        assertEquals(1, events.size());
+        assertTrue(events.get(0).getResult().isFalse());
+    }
+
+    @Test
+    void ignoreAbsence_mixed_andRule_missFollowedByFalse_returnsFalse() throws Throwable {
+        // AND(ignoreAbsence=false(MISS), ignoreAbsence=true(MISS)) →
+        //   c1: INDETERMINATE (absent=true, continue)
+        //   c2: FALSE (ignoreAbsence treats missing as false → short-circuit)
+        //   path result: FALSE
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+        CeleroRule rule = andRule("r1",
+                condNode("c1", "missing-a", "x"),                    // INDETERMINATE
+                condNodeIgnoreAbsence("c2", "missing-b", "y")        // FALSE
+        );
+
+        List<AdvancedConditionEvent> events = new ArrayList<>();
+        engine.addConditionListener(events::add);
+
+        EvalResult result = engine.evaluate(rule, RuleContext.of(Map.of()));
+
+        assertTrue(result.isFalse());
+        assertEquals(2, events.size());
+        assertTrue(events.get(0).getResult().isIndeterminate());
+        assertTrue(events.get(1).getResult().isFalse());
     }
 }
