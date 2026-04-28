@@ -60,6 +60,18 @@ class CelExtractVarTest {
     }
 
     @Test
+    void extract_regexp() throws Throwable {
+        String p = "user.phone";
+        String r = "^\\d+$";
+        String expression = String.format("%s.matches(r'%s')", p, r);
+        Cel cel = CelFactory.standardCelBuilder().build();
+        CelAbstractSyntaxTree parsed = cel.parse(expression).getAst();
+
+        Set<String> vars = extractVarNames(parsed);
+        System.out.println(expression + " → idents: " + vars);
+    }
+
+    @Test
     void extract_capitalizedLiterals_appearAsIDENT() throws Exception {
         // True / False / NULL (non-standard casing) are NOT recognized as literals —
         // CEL treats them as plain identifiers (IDENT nodes), i.e. variable references.

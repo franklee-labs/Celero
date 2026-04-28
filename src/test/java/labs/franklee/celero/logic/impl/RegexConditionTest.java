@@ -2,6 +2,7 @@ package labs.franklee.celero.logic.impl;
 
 import labs.franklee.celero.context.Context;
 import labs.franklee.celero.engine.RuleContext;
+import labs.franklee.celero.exceptions.EvalException;
 import labs.franklee.celero.logic.base.Condition;
 import org.junit.jupiter.api.Test;
 
@@ -73,19 +74,19 @@ class RegexConditionTest {
 
     @Test
     void digits_matchAndNoMatch() throws Exception {
-        RegexCondition cond = new RegexCondition("code", "\\d+");
+        RegexCondition cond = new RegexCondition("code", "^\\d+$");
         cond.compile();
         assertTrue(cond.execute(ctx("code", "12345")).isTrue());
         assertTrue(cond.execute(ctx("code", "123abc")).isFalse());
     }
 
-    // ---- non-String value → false ----
+    // ---- non-String value → CelEvaluationException ----
 
     @Test
     void nonStringValue_returnsFalse() throws Exception {
         RegexCondition cond = new RegexCondition("age", "\\d+");
         cond.compile();
-        assertTrue(cond.execute(ctx("age", 42L)).isFalse());
+        assertThrows(EvalException.class, () -> cond.execute(ctx("age", 42L)));
     }
 
     // ---- missing field ----
@@ -150,6 +151,6 @@ class RegexConditionTest {
     void notRegex_nonStringValue_returnsFalse() throws Exception {
         NegateRegexCondition cond = (NegateRegexCondition) new RegexCondition("age", "\\d+").negate();
         cond.compile();
-        assertTrue(cond.execute(ctx("age", 42L)).isFalse());
+        assertThrows(EvalException.class, () -> cond.execute(ctx("age", 42L)));
     }
 }
