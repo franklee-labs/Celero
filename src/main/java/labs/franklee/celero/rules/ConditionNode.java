@@ -1,7 +1,5 @@
 package labs.franklee.celero.rules;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import labs.franklee.celero.exceptions.InvalidRuleNodeException;
 import labs.franklee.celero.logic.base.Condition;
 import labs.franklee.celero.logic.base.Node;
@@ -25,15 +23,8 @@ public class ConditionNode extends RuleNode {
         return this;
     }
 
-    @JsonAnyGetter
     public Map<String, Object> getProperties() {
         return properties;
-    }
-
-    @JsonAnySetter
-    public ConditionNode setProperty(String key, Object value) {
-        this.properties.put(key, value);
-        return this;
     }
 
     public ConditionNode setProperties(Map<String, Object> props) {

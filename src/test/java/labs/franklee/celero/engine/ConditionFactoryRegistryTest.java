@@ -19,7 +19,7 @@ class ConditionFactoryRegistryTest {
 
     @Test
     void builtInConditionSigns_allPresent() {
-        for (String sign : new String[]{"EQ", "NEQ", "GT", "GTE", "LT", "LTE", "IN", "NIN", "REGEX", "CEL"}) {
+        for (String sign : new String[]{"EQ", "NEQ", "GT", "GTE", "LT", "LTE", "IN", "NIN", "REGEXP", "CEL"}) {
             Assertions.assertNotNull(
                     ConditionFactoryRegistry.getConditionFactory("any", sign),
                     "missing built-in sign: " + sign
@@ -37,7 +37,7 @@ class ConditionFactoryRegistryTest {
 
     @Test
     void registerGlobalFactory_reservedConditionSign_throws() {
-        for (String sign : new String[]{"EQ", "eq", "NIN", "REGEX", "CEL"}) {
+        for (String sign : new String[]{"EQ", "eq", "NIN", "REGEXP", "CEL"}) {
             assertThrows(InvalidRuleNodeException.class, () ->
                     ConditionFactoryRegistry.registerGlobalFactory(sign, p -> null),
                     "should reject reserved sign: " + sign);
@@ -204,7 +204,7 @@ class ConditionFactoryRegistryTest {
 
     @Test
     void regexFactory_withPriority_conditionHasExpectedPriority() {
-        ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", "REGEX");
+        ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", "REGEXP");
         var props = Map.<String, Object>of("field", "x", "value", "^abc$", "priority", 3);
         assertEquals(3, factory.create(props).getPriority());
     }

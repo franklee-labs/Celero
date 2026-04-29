@@ -20,7 +20,7 @@ public class ConditionFactoryRegistry {
         globalFactories.put("LTE",     new LessThanOrEqualConditionFactory());
         globalFactories.put("IN",      new InConditionFactory());
         globalFactories.put("NIN",  new NotInConditionFactory());
-        globalFactories.put("REGEX",   new RegexConditionFactory());
+        globalFactories.put("REGEXP",   new RegexConditionFactory());
         globalFactories.put("CEL",     new CelConditionFactory());
         globalFactories.put("INTERSECT", new IntersectConditionFactory());
         globalFactories.put("DISJOINT", new DisjointConditionFactory());

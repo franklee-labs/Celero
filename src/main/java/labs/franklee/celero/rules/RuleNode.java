@@ -24,8 +24,6 @@ public abstract class RuleNode {
 
     private String name;
 
-    private String description;
-
     private String type;
 
     private String sign;
@@ -48,15 +46,6 @@ public abstract class RuleNode {
         return this;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public RuleNode setDescription(String description) {
-        this.description = description;
-        return this;
-    }
-
     public String getType() {
         return type;
     }
@@ -73,14 +62,6 @@ public abstract class RuleNode {
     public RuleNode setSign(String sign) {
         this.sign = sign;
         return this;
-    }
-
-    public boolean isRelationNode() {
-        return RuleNode.TYPE_RELATION.equalsIgnoreCase(this.getType());
-    }
-
-    public boolean isConditionNode() {
-        return RuleNode.TYPE_CONDITION.equalsIgnoreCase(this.getType());
     }
 
     public abstract Node transform(RuleMeta meta) throws InvalidRuleNodeException;

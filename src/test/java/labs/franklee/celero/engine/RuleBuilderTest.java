@@ -1,6 +1,5 @@
 package labs.franklee.celero.engine;
 
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import labs.franklee.celero.exceptions.InvalidRuleNodeException;
 import labs.franklee.celero.logic.base.Condition;
 import labs.franklee.celero.logic.path.Path;
@@ -9,7 +8,6 @@ import labs.franklee.celero.rules.ConditionNode;
 import labs.franklee.celero.rules.RelationNode;
 import labs.franklee.celero.rules.Rule;
 import labs.franklee.celero.rules.RuleBuilder;
-import labs.franklee.celero.rules.helper.StubObject;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -79,9 +77,11 @@ class RuleBuilderTest {
                       "id": "cond-1",
                       "type": "condition",
                       "sign": "GT",
-                      "field": "age",
-                      "value": "18",
-                      "valueType": "Number"
+                      "properties": {
+                          "field": "age",
+                          "value": "18",
+                          "valueType": "Number"
+                      }
                     }
                   ]
                 }
@@ -106,9 +106,11 @@ class RuleBuilderTest {
                         "id": "cond-1",
                         "type": "condition",
                         "sign": "IN",
-                        "field": "role",
-                        "value": "[\\"admin\\", \\"ops\\"]",
-                        "valueType": "List"
+                        "properties": {
+                            "field": "role",
+                            "value": "[\\"admin\\", \\"ops\\"]",
+                            "valueType": "List"
+                        }
                       }
                     ]
                 }
@@ -129,9 +131,11 @@ class RuleBuilderTest {
                         "id": "cond-1",
                         "type": "condition",
                         "sign": "GTE",
-                        "field": "score",
-                        "value": "60",
-                        "valueType": "Number"
+                        "properties": {
+                            "field": "score",
+                            "value": "60",
+                            "valueType": "Number"
+                        }
                       },
                       {
                         "type": "relation",
@@ -141,17 +145,21 @@ class RuleBuilderTest {
                             "id": "cond-2",
                             "type": "condition",
                             "sign": "EQ",
-                            "field": "vip",
-                            "value": "true",
-                            "valueType": "Boolean"
+                            "properties": {
+                                "field": "vip",
+                                "value": "true",
+                                "valueType": "Boolean"
+                            }
                           },
                           {
                             "id": "cond-3",
                             "type": "condition",
                             "sign": "EQ",
-                            "field": "role",
-                            "value": "admin",
-                            "valueType": "String"
+                            "properties": {
+                                "field": "role",
+                                "value": "admin",
+                                "valueType": "String"
+                            }
                           }
                         ]
                       }
@@ -171,9 +179,11 @@ class RuleBuilderTest {
                     "id": "cond-1",
                     "type": "condition",
                     "sign": "EQ",
-                    "field": "status",
-                    "value": "active",
-                    "valueType": "String"
+                    "properties": {
+                        "field": "status",
+                        "value": "active",
+                        "valueType": "String"
+                    }
                 }
                 """;
 
@@ -192,34 +202,17 @@ class RuleBuilderTest {
                       {
                         "type": "condition",
                         "sign": "UNKNOWN",
-                        "field": "x",
-                        "value": "1",
-                        "valueType": "Number"
+                        "properties": {
+                            "field": "x",
+                            "value": "1",
+                            "valueType": "Number"
+                        }
                       }
                     ]
                 }
                 """;
 
         assertThrows(Exception.class, () -> RuleBuilder.fromJson("r030", json).build());
-    }
-
-    @Test
-    void fromJson_properties_anySetterGetter() throws Throwable {
-        String json = """
-                {
-                  "name": "stub",
-                  "key1": "x",
-                  "key2": "y"
-                }
-                """;
-        JsonMapper mapper = new JsonMapper();
-        StubObject stubObject = mapper.readValue(json, StubObject.class);
-        Map<String, Object> properties = stubObject.getProperties();
-        assertNotNull(properties);
-        assertEquals(2, properties.size());
-        assertEquals("x", properties.get("key1"));
-        assertEquals("y", properties.get("key2"));
-        assertEquals("stub", stubObject.getName());
     }
 
     @Test
@@ -247,9 +240,11 @@ class RuleBuilderTest {
                     "name": "status check",
                     "type": "condition",
                     "sign": "EQ",
-                    "field": "status",
-                    "value": "active",
-                    "valueType": "String"
+                    "properties": {
+                        "field": "status",
+                        "value": "active",
+                        "valueType": "String"
+                    }
                   },
                   {
                     "type": "relation",
@@ -260,18 +255,22 @@ class RuleBuilderTest {
                         "name": "role check",
                         "type": "condition",
                         "sign": "EQ",
-                        "field": "role",
-                        "value": "admin",
-                        "valueType": "String"
+                        "properties": {
+                            "field": "role",
+                            "value": "admin",
+                            "valueType": "String"
+                        }
                       },
                       {
                         "id": "c-level",
                         "name": "level check",
                         "type": "condition",
                         "sign": "EQ",
-                        "field": "level",
-                        "value": "high",
-                        "valueType": "String"
+                        "properties": {
+                            "field": "level",
+                            "value": "high",
+                            "valueType": "String"
+                        }
                       }
                     ]
                   },
@@ -284,9 +283,11 @@ class RuleBuilderTest {
                         "name": "banned check",
                         "type": "condition",
                         "sign": "EQ",
-                        "field": "banned",
-                        "value": "true",
-                        "valueType": "Boolean"
+                        "properties": {
+                            "field": "banned",
+                            "value": "true",
+                            "valueType": "Boolean"
+                        }
                       }
                     ]
                   }
