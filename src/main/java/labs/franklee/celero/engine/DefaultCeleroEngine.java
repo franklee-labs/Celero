@@ -59,12 +59,12 @@ public class DefaultCeleroEngine extends AbstractCeleroEngine {
                 result = context.getConditionEvalResult(condition.getInternalUniqueId());
             }
             if (null == result) {
-                EvalResult r = condition.execute(context);
+                result = condition.execute(context);
                 ConditionEvent event = new ConditionEvent(condition.getRuleId(), condition.getRuleName(),
                         condition.getId(), condition.getName(),
-                        r.isTrue(), context.getRuleContext());
+                        result.isTrue(), context.getRuleContext());
                 this.callConditionListeners(event);
-                if (!r.isTrue()) {
+                if (!result.isTrue()) {
                     if (context.isEnableReport()) {
                         unMatchedIdx.add(i);
                         skippedAt = i+1;

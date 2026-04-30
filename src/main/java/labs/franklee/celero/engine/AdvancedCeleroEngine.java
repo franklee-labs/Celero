@@ -61,19 +61,19 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
         Set<Integer> unMatchedIdx = new HashSet<>();
         Set<Integer> absentIdx = new HashSet<>();
         int skippedAt = path.conditions().size();
-        EvalResult result = null;
         for (int i = 0; i < path.conditions().size(); i++) {
+            EvalResult result = null;
             Condition condition = path.conditions().get(i);
             if (context.isEnableConditionResultCache()) {
                 result = context.getConditionEvalResult(condition.getInternalUniqueId());
             }
             if (null == result) {
-                EvalResult r = condition.execute(context);
+                result = condition.execute(context);
                 AdvancedConditionEvent event = new AdvancedConditionEvent(condition.getRuleId(), condition.getRuleName(),
                         condition.getId(), condition.getName(),
-                        r, context.getRuleContext());
+                        result, context.getRuleContext());
                 this.callConditionListeners(event);
-                if (r.isFalse()) {
+                if (result.isFalse()) {
                     unMatchedIdx.add(i);
                     skippedAt = i+1;
                     if (context.isEnableReport()) {
@@ -81,7 +81,7 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
                         context.getRuleContext().appendRoute(rule, route);
                     }
                     return EvalResult.FALSE;
-                } else if (r.isIndeterminate()) {
+                } else if (result.isIndeterminate()) {
                     absentIdx.add(i);
                     absent = true;
                 } else {
