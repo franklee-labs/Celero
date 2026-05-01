@@ -23,8 +23,8 @@
 ## Installation
 
 ```bash
-git clone https://github.com/franklee-labs/Celero.git
-cd Celero
+git clone https://github.com/franklee-labs/celero.git
+cd celero
 mvn clean install
 ```
 
