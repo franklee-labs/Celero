@@ -4,6 +4,7 @@ import labs.franklee.celero.exceptions.InvalidRuleNodeException;
 import labs.franklee.celero.logic.base.Priority;
 import labs.franklee.celero.logic.base.ValueType;
 import labs.franklee.celero.rules.ConditionFactoryRegistry;
+import labs.franklee.celero.rules.ConditionNode;
 import labs.franklee.celero.rules.RuleBuilder;
 import labs.franklee.celero.rules.internal.ConditionFactory;
 import org.junit.jupiter.api.*;
@@ -161,12 +162,19 @@ class ConditionFactoryRegistryTest {
 
     // ---- priority propagation through factories ----
 
+    private static ConditionNode conditionNode(String sign, Map<String, Object> props) {
+        ConditionNode node = new ConditionNode();
+        node.setSign(sign);
+        node.setProperties(props);
+        return node;
+    }
+
     @Test
     void factory_withPriority_conditionHasExpectedPriority() {
         for (String sign : new String[]{"EQ", "NEQ", "GT", "GTE", "LT", "LTE"}) {
             ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", sign);
-            var props = Map.<String, Object>of("field", "x", "value", "1", "valueType", "Number", "priority", 10);
-            assertEquals(10, factory.create(props).getPriority(), "priority mismatch for sign: " + sign);
+            var node = conditionNode(sign, Map.of("field", "x", "value", "1", "valueType", "Number", "priority", 10));
+            assertEquals(10, factory.create(node).getPriority(), "priority mismatch for sign: " + sign);
         }
     }
 
@@ -174,38 +182,38 @@ class ConditionFactoryRegistryTest {
     void factory_withoutPriority_conditionHasDefaultPriority() {
         for (String sign : new String[]{"EQ", "NEQ", "GT", "GTE", "LT", "LTE"}) {
             ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", sign);
-            var props = Map.<String, Object>of("field", "x", "value", "1", "valueType", "Number");
-            assertEquals(Priority.DEFAULT, factory.create(props).getPriority(), "expected default priority for sign: " + sign);
+            var node = conditionNode(sign, Map.of("field", "x", "value", "1", "valueType", "Number"));
+            assertEquals(Priority.DEFAULT, factory.create(node).getPriority(), "expected default priority for sign: " + sign);
         }
     }
 
     @Test
     void celFactory_withPriority_conditionHasExpectedPriority() {
         ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", "CEL");
-        var props = Map.<String, Object>of("value", "x == 1", "priority", 5);
-        assertEquals(5, factory.create(props).getPriority());
+        var node = conditionNode("CEL", Map.of("value", "x == 1", "priority", 5));
+        assertEquals(5, factory.create(node).getPriority());
     }
 
     @Test
     void celFactory_withoutPriority_conditionHasDefaultPriority() {
         ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", "CEL");
-        var props = Map.<String, Object>of("value", "x == 1");
-        assertEquals(Priority.DEFAULT, factory.create(props).getPriority());
+        var node = conditionNode("CEL", Map.of("value", "x == 1"));
+        assertEquals(Priority.DEFAULT, factory.create(node).getPriority());
     }
 
     @Test
     void inFactory_withPriority_conditionHasExpectedPriority() {
         for (String sign : new String[]{"IN", "NIN"}) {
             ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", sign);
-            var props = Map.<String, Object>of("field", "x", "value", "[1,2,3]", "valueType", "Number", "priority", 7);
-            assertEquals(7, factory.create(props).getPriority(), "priority mismatch for sign: " + sign);
+            var node = conditionNode(sign, Map.of("field", "x", "value", "[1,2,3]", "valueType", "Number", "priority", 7));
+            assertEquals(7, factory.create(node).getPriority(), "priority mismatch for sign: " + sign);
         }
     }
 
     @Test
     void regexFactory_withPriority_conditionHasExpectedPriority() {
         ConditionFactory factory = ConditionFactoryRegistry.getConditionFactory("any", "REGEXP");
-        var props = Map.<String, Object>of("field", "x", "value", "^abc$", "priority", 3);
-        assertEquals(3, factory.create(props).getPriority());
+        var node = conditionNode("REGEXP", Map.of("field", "x", "value", "^abc$", "priority", 3));
+        assertEquals(3, factory.create(node).getPriority());
     }
 }

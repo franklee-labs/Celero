@@ -1,8 +1,6 @@
 # Celero
 
-<div align="center">
-    <img src="./assets/celero_blue.svg" width="200" />
-</div>
+![Celero logo](./assets/celero_blue.svg)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -10,8 +8,8 @@
 
 ## 功能特性
 
-- **灵活的规则定义**：支持流式 API 编程式构建，也支持从 JSON 反序列化
-- **丰富的条件类型**：等值、比较、正则、集合、CEL 表达式等
+- **灵活的规则定义**：支持 API 编程式构建，也支持从 JSON 反序列化
+- **丰富的条件类型**：等值、比较、正则、集合、列表交集/不相交、字段存在性、CEL 表达式等
 - **逻辑运算符**：AND / OR / NOT，可任意嵌套
 - **三值逻辑**：支持 `TRUE` / `FALSE` / `INDETERMINATE` 三态结果（`AdvancedCeleroEngine`）
 - **跨 Path 条件结果缓存**：同一条件在多路径中只执行一次（需显式开启）
@@ -43,7 +41,7 @@ Celero 的规则以**逻辑树**的形式描述：叶节点是 `ConditionNode`�
 展开规则：
 
 | 表达式 | 展开结果 |
-|---|---|
+| --- | --- |
 | `AND(A, B)` | 单条 Path：`[A, B]` |
 | `OR(A, B)` | 两条 Path：`[A]` 和 `[B]` |
 | `AND(A, OR(B, C))` | 两条 Path：`[A, B]` 和 `[A, C]` |
@@ -55,8 +53,8 @@ Celero 的规则以**逻辑树**的形式描述：叶节点是 `ConditionNode`�
 
 ```java
 public final class EvalResult {
-    public static final EvalResult TRUE         = new EvalResult(State.TRUE);
-    public static final EvalResult FALSE        = new EvalResult(State.FALSE);
+    public static final EvalResult TRUE          = new EvalResult(State.TRUE);
+    public static final EvalResult FALSE         = new EvalResult(State.FALSE);
     public static final EvalResult INDETERMINATE = new EvalResult(State.INDETERMINATE);
 }
 ```
@@ -70,7 +68,7 @@ public final class EvalResult {
 ### 两种引擎
 
 | | `DefaultCeleroEngine` | `AdvancedCeleroEngine` |
-|---|---|---|
+| --- | --- | --- |
 | 返回类型 | `boolean` | `EvalResult` |
 | 缺失参数处理 | 视为 `FALSE` | 返回 `INDETERMINATE` |
 | 事件类型 | `ConditionEvent` / `RuleEvent` | `AdvancedConditionEvent` / `AdvancedRuleEvent` |
@@ -81,7 +79,7 @@ public final class EvalResult {
 
 规则级别：若所有 Path 均不为 `TRUE`，且至少一条 Path 为 `INDETERMINATE`，则规则返回 `INDETERMINATE`，否则返回 `FALSE`。
 
-```
+```text
 path1: [A=INDETERMINATE, B=TRUE]  → INDETERMINATE
 path2: [A=TRUE, B=FALSE]           → FALSE（短路）
 
@@ -101,7 +99,7 @@ rule → INDETERMINATE（有路径不确定，且无路径为 TRUE）
 1. **规则级开关**：`RuleBuilder.cacheable(true)` — 是否允许该规则使用缓存
 2. **条件级开关**：`ConditionNode.setCacheable(true)` — 是否允许该条件的结果被缓存
 
-```
+```text
 规则级 cacheable = false  →  无论条件如何，均不缓存
 规则级 cacheable = true，条件级 cacheable = false  →  该条件不缓存
 规则级 cacheable = true，条件级 cacheable = true   →  该条件结果被缓存并跨 Path 复用
@@ -118,64 +116,56 @@ rule → INDETERMINATE（有路径不确定，且无路径为 TRUE）
 ```java
 import labs.franklee.celero.engine.*;
 import labs.franklee.celero.rules.ConditionNode;
-import labs.franklee.celero.rules.Rule;
 import labs.franklee.celero.rules.RuleBuilder;
 
-// 定义条件节点
 ConditionNode statusCondition = new ConditionNode();
-statusCondition.
+statusCondition.setId("cond-status");
+statusCondition.setSign("EQ");
+statusCondition.setProperties(Map.of(
+    "field", "status",
+    "value", "active",
+    "valueType", "String"
+));
 
-        setId("cond-status");
-statusCondition.
+CeleroRule rule = RuleBuilder.create()
+    .id("rule-001")
+    .name("Active User Check")
+    .root(statusCondition)
+    .build();
 
-        setSign("EQ");
-statusCondition.
+DefaultCeleroEngine engine = new DefaultCeleroEngine();
+RuleContext context = RuleContext.of(Map.of("status", "active"));
 
-        setProperties(Map.of(
-                "field", "status",
-                              "value","active",
-                              "valueType","String"
-        ));
-
-        // 构建规则
-        Rule rule = RuleBuilder.create()
-                .id("rule-001")
-                .name("Active User Check")
-                .root(statusCondition)
-                .build();
-
-        // 评估规则
-        DefaultCeleroEngine engine = new DefaultCeleroEngine();
-        RuleContext context = RuleContext.of(Map.of("status", "active"));
-
-        boolean result = engine.evaluate(rule, context);  // true
+boolean result = engine.evaluate(rule, context);  // true
 ```
 
 ### JSON 构建规则
 
+`fromJson` 分别接收规则 id 和逻辑树根节点的 JSON。条件属性嵌套在 `"properties"` 对象中：
+
 ```java
 String ruleJson = """
 {
-  "id": "age-check",
-  "name": "Adult Verification",
-  "root": {
-    "type": "relation",
-    "sign": "AND",
-    "children": [
-      {
-        "id": "age-cond",
-        "type": "condition",
-        "sign": "GT",
+  "type": "relation",
+  "sign": "AND",
+  "children": [
+    {
+      "id": "age-cond",
+      "type": "condition",
+      "sign": "GT",
+      "properties": {
         "field": "age",
         "value": "18",
         "valueType": "Number"
       }
-    ]
-  }
+    }
+  ]
 }
 """;
 
-Rule rule = RuleBuilder.fromJson(ruleJson).build();
+CeleroRule rule = RuleBuilder.fromJson("age-check", ruleJson)
+    .name("Adult Verification")
+    .build();
 boolean result = engine.evaluate(rule, RuleContext.of(Map.of("age", 25)));  // true
 ```
 
@@ -191,7 +181,7 @@ RelationNode andNode = new RelationNode();
 andNode.setSign("AND");
 andNode.setChildren(List.of(condA, orNode));
 
-Rule rule = RuleBuilder.create().id("rule").name("rule").root(andNode).build();
+CeleroRule rule = RuleBuilder.create().id("rule").name("rule").root(andNode).build();
 ```
 
 对应展开的两条 Path：`[A, B]` 和 `[A, C]`。
@@ -205,7 +195,7 @@ condA.setId("cond-a").setSign("EQ").setCacheable(true);
 condA.setProperties(Map.of("field", "role", "value", "admin", "valueType", "String"));
 
 // 规则级也开启缓存
-Rule rule = RuleBuilder.create()
+CeleroRule rule = RuleBuilder.create()
     .id("rule")
     .name("rule")
     .cacheable(true)   // 规则级开关
@@ -227,11 +217,11 @@ engine.evaluate(rule, RuleContext.of(Map.of("role", "admin")));
 ```java
 AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
 
-// 参数完整 → TRUE
+// 参数完整且匹配 → TRUE
 EvalResult r1 = engine.evaluate(rule, RuleContext.of(Map.of("status", "active")));
 r1.isTrue();   // true
 
-// 参数不满足 → FALSE
+// 参数存在但不匹配 → FALSE
 EvalResult r2 = engine.evaluate(rule, RuleContext.of(Map.of("status", "inactive")));
 r2.isFalse();  // true
 
@@ -240,24 +230,34 @@ EvalResult r3 = engine.evaluate(rule, RuleContext.of(Map.of()));
 r3.isIndeterminate();  // true
 ```
 
-`INDETERMINATE` 的典型应用场景：在渐进式规则匹配场景中，数据不完整时，区分「明确不满足条件」和「数据缺失，无法判断」，避免误判。
-如用户填写表单时，根据输入的信息动态匹配当前已传入的字段，对于尚未输入的字段，返回INDETERMINATE，而不是判定为FALSE。
+`INDETERMINATE` 的典型应用场景：在渐进式规则匹配中，数据不完整时，区分「明确不满足条件」和「数据缺失，无法判断」，避免误判。例如用户填写表单时，引擎只对已填写的字段求值，尚未输入的字段返回 `INDETERMINATE` 而非 `FALSE`。
+
 ---
 
 ## 条件类型参考
 
-| sign    | 说明             | valueType                                |
-|---------|----------------|------------------------------------------|
-| `EQ`    | 等于             | String / Number / Boolean / expression   |
-| `NEQ`   | 不等于            | String / Number / Boolean  /  expression |
-| `GT`    | 大于             | Number /  expression                     |
-| `GTE`   | 大于等于           | Number /  expression                     |
-| `LT`    | 小于             | Number /  expression                     |
-| `LTE`   | 小于等于           | Number /  expression                     |
-| `IN`    | 在集合中           | 支持 String / Number / Boolean 混合          |
-| `NIN`   | 不在集合中          | 支持 String / Number / Boolean 混合          |
-| `REGEX` | 正则匹配           | reg expression                           |
-| `CEL`   | Google CEL 表达式 | expression                               |
+| Sign | 说明 | Properties |
+| --- | --- | --- |
+| `EQ` | 等于 | `field`、`value`、`valueType`：String / Number / Boolean / Expression |
+| `NEQ` | 不等于 | `field`、`value`、`valueType`：String / Number / Boolean / Expression |
+| `GT` | 大于 | `field`、`value`、`valueType`：Number / Expression |
+| `GTE` | 大于等于 | `field`、`value`、`valueType`：Number / Expression |
+| `LT` | 小于 | `field`、`value`、`valueType`：Number / Expression |
+| `LTE` | 小于等于 | `field`、`value`、`valueType`：Number / Expression |
+| `IN` | 在集合中 | `field`、`value`（JSON 数组）、`valueType`：List |
+| `NIN` | 不在集合中 | `field`、`value`（JSON 数组）、`valueType`：List |
+| `REGEXP` | 正则匹配 | `field`、`value`（正则表达式） |
+| `CEL` | Google CEL 表达式 | `expression`（CEL 表达式字符串） |
+| `INTERSECT` | 两个列表有公共元素 | `field1`、`valueType1`、`field2`、`valueType2`：List / Expression |
+| `DISJOINT` | 两个列表无公共元素 | `field1`、`valueType1`、`field2`、`valueType2`：List / Expression |
+| `EXISTS` | 字段存在于上下文中 | `field`（CEL 路径，如 `params.age`） |
+| `ABSENT` | 字段不存在于上下文中 | `field`（CEL 路径，如 `params.age`） |
+
+### 特定条件说明
+
+**`INTERSECT` / `DISJOINT`**：`valueType` 为 `List` 时，字段值为 JSON 数组字面量（如 `"[\"a\",\"b\"]"`）；`valueType` 为 `Expression` 时，字段为上下文中持有列表的变量名。
+
+**`EXISTS` / `ABSENT`**：无论上下文模式如何，始终返回确定的 `TRUE` 或 `FALSE`。`ABSENT` 是 `EXISTS` 的逻辑取反。
 
 ### CEL 表达式示例
 
@@ -280,8 +280,48 @@ Priority.DEFAULT = 0
 Priority.LOWEST  = Integer.MAX_VALUE  // 最后执行
 ```
 
-通过JSON配置规则时，ConditionNode的priority字段可指定优先级。  
-通过ConditionFactory创建时，在properties中传入priority(int)可指定优先级。  
+通过 JSON 配置规则时，在 `ConditionNode` 的 `properties` 中设置 `priority` 字段可指定优先级。
+通过 `ConditionFactory` 创建时，在 properties map 中传入 `priority`（int）可指定优先级。
+
+---
+
+## 忽略缺失（`ignoreAbsence`）
+
+默认情况下，当条件所需参数在上下文中不存在时：
+
+- `DefaultCeleroEngine` — 返回 `FALSE`
+- `AdvancedCeleroEngine` — 返回 `INDETERMINATE`
+
+对条件设置 `ignoreAbsence = true` 后，参数缺失将**始终**返回 `FALSE`，即使在 `AdvancedCeleroEngine` 下也不会产生 `INDETERMINATE`。适用于可选字段——缺失时直接判为不满足，而不让整条规则变为不确定。
+
+```java
+// 编程式
+ConditionNode cond = new ConditionNode();
+cond.setId("opt-cond").setSign("EQ");
+cond.setProperties(Map.of(
+    "field", "optionalTag",
+    "value", "vip",
+    "valueType", "String",
+    "ignoreAbsence", true    // optionalTag 缺失 → FALSE，而非 INDETERMINATE
+));
+```
+
+```json
+{
+  "id": "opt-cond",
+  "type": "condition",
+  "sign": "EQ",
+  "properties": {
+    "field": "optionalTag",
+    "value": "vip",
+    "valueType": "String",
+    "ignoreAbsence": true
+  }
+}
+```
+
+`ignoreAbsence` 支持以下条件类型：`EQ`、`NEQ`、`GT`、`GTE`、`LT`、`LTE`、`IN`、`NIN`、`REGEXP`、`CEL`、`INTERSECT`、`DISJOINT`。
+`EXISTS` / `ABSENT` **不支持**该属性，因为它们本身就是用于判断字段是否存在的。
 
 ---
 
@@ -341,7 +381,7 @@ engine.addConditionListener(new AdvancedConditionListener() {
 RuleContext ctx = RuleContext.of(params).setEnableReports(true);
 engine.evaluate(rule, ctx);
 
-Map<Rule, Report> reports = ctx.getReports();
+Map<CeleroRule, Report> reports = ctx.getReports();
 Report report = reports.get(rule);
 for (Route route : report.getRoutes()) {
     route.getMatched();    // 已通过的条件
@@ -357,7 +397,7 @@ for (Route route : report.getRoutes()) {
 
 ## RuleContext 属性
 
-`RuleContext` 除了存放规则参数（`params`）外，还支持附加任意 key-value 属性，可在监听器中读取：
+`RuleContext` 除了存放规则参数（`params`）外，还支持附加任意 key-value 属性，可在监听器中读写：
 
 ```java
 RuleContext ctx = RuleContext.of(params)
@@ -375,7 +415,7 @@ String requestId = (String) event.getContext().getAttribute("requestId");
 ## 批量评估
 
 ```java
-List<Rule> rules = List.of(rule1, rule2, rule3);
+List<CeleroRule> rules = List.of(rule1, rule2, rule3);
 RuleContext ctx = RuleContext.of(params);
 
 // DefaultCeleroEngine — 每条规则评估完后触发 RuleListener
@@ -389,9 +429,9 @@ advancedEngine.evaluate(rules, ctx);
 
 ## 架构概览
 
-```
+```text
 RuleBuilder
-  └─ fromJson(String) / create()
+  └─ fromJson(String id, String json) / create()
        └─ build()
             ├─ RelationNode.transform()  → 逻辑树（AND / OR / NOT + Condition 节点）
             ├─ Node.validateAll()        → 结构校验
@@ -413,13 +453,14 @@ RuleBuilder
 
 ### 包结构
 
-```
+```text
 src/main/java/labs/franklee/celero/
-├── engine/      DefaultCeleroEngine, AdvancedCeleroEngine, RuleContext, Report, Route
+├── engine/      DefaultCeleroEngine, AdvancedCeleroEngine, CeleroRule, RuleContext, Report, Route
 ├── rules/       RuleBuilder, Rule, ConditionNode, RelationNode, ConditionFactoryRegistry
 ├── logic/
 │   ├── base/    Condition, Relation, EvalResult, Node, Priority, Validation
-│   └── impl/    AND, OR, NOT, EqualCondition, CelCondition, RegexCondition ...
+│   └── impl/    AND, OR, NOT, EqualCondition, CompareCondition, CelCondition, RegexCondition,
+│                IntersectCondition, DisjointCondition, ExistsCondition, AbsentCondition ...
 ├── logic/path/  Path, PathGroup
 ├── listener/    RuleListener, ConditionListener, AdvancedXxx 变体
 ├── context/     Context（评估上下文，含缓存存储）
@@ -435,7 +476,8 @@ mvn test
 ```
 
 测试覆盖：
-- 所有条件类型（等值、比较、正则、CEL）
+
+- 所有条件类型（等值、比较、正则、CEL、列表交集/不相交、字段存在性）
 - AND / OR / NOT 逻辑及任意嵌套
 - 三态（INDETERMINATE）传播与边界
 - 缓存开关的各种组合（规则级 × 条件级 × 是否有命中）
@@ -449,9 +491,9 @@ mvn test
 欢迎 PR！
 
 1. Fork 本仓库
-2. 创建分支 (`git checkout -b feature/xxx`)
-3. 提交更改 (`git commit -m 'Add xxx'`)
-4. Push (`git push origin feature/xxx`)
+2. 创建分支（`git checkout -b feature/xxx`）
+3. 提交更改（`git commit -m 'Add xxx'`）
+4. Push（`git push origin feature/xxx`）
 5. 发起 Pull Request
 
 ---

@@ -54,8 +54,9 @@ class AdvancedCeleroEngineTest {
 
     private static ConditionNode condNodeIgnoreAbsence(String id, String field, String value) {
         ConditionNode c = new ConditionNode();
+        c.setIgnoreAbsence(true);
         c.setType("condition").setSign("EQ").setId(id).setName(id + "-name");
-        c.setProperties(Map.of("field", field, "value", value, "valueType", "String", "ignoreAbsence", true));
+        c.setProperties(Map.of("field", field, "value", value, "valueType", "String"));
         return c;
     }
 

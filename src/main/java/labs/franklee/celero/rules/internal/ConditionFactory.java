@@ -1,10 +1,9 @@
 package labs.franklee.celero.rules.internal;
 
 import labs.franklee.celero.logic.base.Condition;
-
-import java.util.Map;
+import labs.franklee.celero.rules.ConditionNode;
 
 public interface ConditionFactory {
 
-    Condition create(Map<String, Object> properties);
+    Condition create(ConditionNode conditionNode);
 }

@@ -121,6 +121,32 @@ class RuleBuilderTest {
     }
 
     @Test
+    void fromJson_condition_extraField_parsesJsonArray() throws Throwable {
+        String json = """
+                {
+                    "type": "relation",
+                    "sign": "AND",
+                    "children": [
+                      {
+                        "id": "cond-1",
+                        "type": "condition",
+                        "sign": "IN",
+                        "extra": "useless field",
+                        "properties": {
+                            "field": "role",
+                            "value": "[\\"admin\\", \\"ops\\"]",
+                            "valueType": "List"
+                        }
+                      }
+                    ]
+                }
+                """;
+
+        CeleroRule rule = RuleBuilder.fromJson("r011", json).build();
+        assertNotNull(rule.getRule().getPathGroup());
+    }
+
+    @Test
     void fromJson_nestedOrUnderAnd() throws Throwable {
         String json = """
                 {
@@ -213,6 +239,28 @@ class RuleBuilderTest {
                 """;
 
         assertThrows(Exception.class, () -> RuleBuilder.fromJson("r030", json).build());
+    }
+
+    @Test
+    void fromJson_invalidChildNode_throwsException() {
+        String json = """
+                {
+                    "type": "relation",
+                    "sign": "AND",
+                    "children": [
+                      {
+                        "id": "cond-1",
+                        "type": "condition",
+                        "sign": "cel",
+                        "properties": {
+                            "field": "x"
+                        }
+                      }
+                    ]
+                }
+                """;
+
+        assertThrows(InvalidRuleNodeException.class, () -> RuleBuilder.fromJson("r030", json).build());
     }
 
     @Test

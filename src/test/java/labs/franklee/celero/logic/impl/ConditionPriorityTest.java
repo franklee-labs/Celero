@@ -31,8 +31,8 @@ class ConditionPriorityTest {
     }
 
     @Test
-    void getPriority_greaterThanCondition_returnsExplicitPriority() {
-        assertEquals(10, new GreaterThanCondition("x", "1", ValueType.Number, 10).getPriority());
+    void getPriority_compareCondition_returnsExplicitPriority() {
+        assertEquals(10, new CompareCondition("x", "1", ValueType.Number, "GT", 10).getPriority());
     }
 
     @Test
@@ -75,23 +75,23 @@ class ConditionPriorityTest {
     }
 
     @Test
-    void negate_greaterThanCondition_preservesPriority() throws Exception {
-        assertEquals(3, new GreaterThanCondition("x", "1", ValueType.Number, 3).negate().getPriority());
+    void negate_gtCondition_preservesPriority() throws Exception {
+        assertEquals(3, new CompareCondition("x", "1", ValueType.Number, "GT", 3).negate().getPriority());
     }
 
     @Test
-    void negate_greaterThanOrEqualCondition_preservesPriority() throws Exception {
-        assertEquals(4, new GreaterThanOrEqualCondition("x", "1", ValueType.Number, 4).negate().getPriority());
+    void negate_gteCondition_preservesPriority() throws Exception {
+        assertEquals(4, new CompareCondition("x", "1", ValueType.Number, "GTE", 4).negate().getPriority());
     }
 
     @Test
-    void negate_lessThanCondition_preservesPriority() throws Exception {
-        assertEquals(6, new LessThanCondition("x", "1", ValueType.Number, 6).negate().getPriority());
+    void negate_ltCondition_preservesPriority() throws Exception {
+        assertEquals(6, new CompareCondition("x", "1", ValueType.Number, "LT", 6).negate().getPriority());
     }
 
     @Test
-    void negate_lessThanOrEqualCondition_preservesPriority() throws Exception {
-        assertEquals(9, new LessThanOrEqualCondition("x", "1", ValueType.Number, 9).negate().getPriority());
+    void negate_lteCondition_preservesPriority() throws Exception {
+        assertEquals(9, new CompareCondition("x", "1", ValueType.Number, "LTE", 9).negate().getPriority());
     }
 
     @Test

@@ -26,6 +26,10 @@ public abstract class CommonConditionFactory implements ConditionFactory {
         return getValueAs(p, "value", String.class);
     }
 
+    protected String expression(Map<String, Object> p) {
+        return getValueAs(p, "expression", String.class);
+    }
+
     protected ValueType valueType(Map<String, Object> p) {
         String vt = getValueAs(p, "valueType", String.class);
         return vt != null ? ValueType.fromString(vt) : null;

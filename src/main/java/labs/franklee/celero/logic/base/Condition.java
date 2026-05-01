@@ -23,7 +23,7 @@ public abstract class Condition extends Node implements Negatable<Condition> {
     private boolean cacheable;
 
     // if set true, return false when param is absent
-    private final boolean ignoreAbsence;
+    private boolean ignoreAbsence;
 
     // greater value has lower priority
     private final int priority;
@@ -50,7 +50,7 @@ public abstract class Condition extends Node implements Negatable<Condition> {
     public void setName(String name) {
         super.setName(name);
         if (null == this.getName() || "".equalsIgnoreCase(this.getName().trim())) {
-            this.setName(generateName());
+            this.name = generateName();
         }
     }
 
@@ -68,6 +68,10 @@ public abstract class Condition extends Node implements Negatable<Condition> {
 
     public boolean isIgnoreAbsence() {
         return ignoreAbsence;
+    }
+
+    public void setIgnoreAbsence(boolean ignoreAbsence) {
+        this.ignoreAbsence = ignoreAbsence;
     }
 
     public final int getPriority() {

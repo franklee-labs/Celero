@@ -14,10 +14,10 @@ public class ConditionFactoryRegistry {
     static {
         globalFactories.put("EQ",      new EqualConditionFactory());
         globalFactories.put("NEQ",     new NotEqualConditionFactory());
-        globalFactories.put("GT",      new GreaterThanConditionFactory());
-        globalFactories.put("GTE",     new GreaterThanOrEqualConditionFactory());
-        globalFactories.put("LT",      new LessThanConditionFactory());
-        globalFactories.put("LTE",     new LessThanOrEqualConditionFactory());
+        globalFactories.put("GT",      new CompareConditionFactory());
+        globalFactories.put("GTE",     new CompareConditionFactory());
+        globalFactories.put("LT",      new CompareConditionFactory());
+        globalFactories.put("LTE",     new CompareConditionFactory());
         globalFactories.put("IN",      new InConditionFactory());
         globalFactories.put("NIN",  new NotInConditionFactory());
         globalFactories.put("REGEXP",   new RegexConditionFactory());

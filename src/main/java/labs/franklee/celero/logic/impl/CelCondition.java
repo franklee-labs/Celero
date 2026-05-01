@@ -4,6 +4,7 @@ import dev.cel.runtime.CelRuntime;
 import labs.franklee.celero.context.Context;
 import labs.franklee.celero.exceptions.MissingParameterException;
 import labs.franklee.celero.logic.base.Condition;
+import labs.franklee.celero.logic.base.Validation;
 
 public class CelCondition extends Condition {
 
@@ -27,6 +28,14 @@ public class CelCondition extends Condition {
     @Override
     protected String generateName() {
         return this.expression;
+    }
+
+    @Override
+    public Validation validate() {
+        if (this.expression == null || this.expression.trim().isEmpty()) {
+            return new Validation(false, "expression is empty");
+        }
+        return Validation.VALID;
     }
 
     @Override

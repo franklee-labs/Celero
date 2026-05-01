@@ -12,6 +12,8 @@ public class ConditionNode extends RuleNode {
 
     private boolean cacheable;
 
+    private boolean ignoreAbsence;
+
     private final Map<String, Object> properties = new HashMap<>();
 
     public boolean isCacheable() {
@@ -20,6 +22,15 @@ public class ConditionNode extends RuleNode {
 
     public ConditionNode setCacheable(boolean cacheable) {
         this.cacheable = cacheable;
+        return this;
+    }
+
+    public boolean isIgnoreAbsence() {
+        return ignoreAbsence;
+    }
+
+    public ConditionNode setIgnoreAbsence(boolean ignoreAbsence) {
+        this.ignoreAbsence = ignoreAbsence;
         return this;
     }
 
@@ -42,12 +53,13 @@ public class ConditionNode extends RuleNode {
         if (null == factory) {
             throw new InvalidRuleNodeException("can not find factory for sign [" + this.getSign() + "]");
         }
-        Condition condition = factory.create(this.properties);
+        Condition condition = factory.create(this);
         try {
             condition.setId(this.getId());
             condition.setName(this.getName());
             condition.setRuleId(meta.getId()).setRuleName(meta.getName());
             condition.setCacheable(this.isCacheable());
+            condition.setIgnoreAbsence(this.isIgnoreAbsence());
             condition.build();
             return condition;
         } catch (InvalidRuleNodeException e) {

@@ -7,7 +7,7 @@ public abstract class Node {
     protected String id;
     protected NodeType type;
     private List<Node> children = new ArrayList<>();
-    private String name = "Node";
+    protected String name = "Node";
     private String ruleId = null;
     private String ruleName;
 

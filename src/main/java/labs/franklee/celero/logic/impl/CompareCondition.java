@@ -14,47 +14,74 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Set;
 
-public class GreaterThanOrEqualCondition extends Condition {
-
-    private static final String GTE = " >= ";
+public class CompareCondition extends Condition {
 
     private final String field;
     private final ValueType valueType;
     private final String value;
+    private final String signStr;
+    private final String sign;
 
     private Set<String> expressionValueVars;
     private CelRuntime.Program program;
     private Map<String, Object> builtinParams;
 
-    public GreaterThanOrEqualCondition(String field, String value, ValueType valueType) {
+    public CompareCondition(String field, String value, ValueType valueType, String signStr) {
         super();
         this.field = field;
         this.value = value;
         this.valueType = valueType;
+        this.signStr = signStr;
+        this.sign = signStrToSign(signStr);
     }
 
-    public GreaterThanOrEqualCondition(String field, String value, ValueType valueType, int priority) {
+    public CompareCondition(String field, String value, ValueType valueType, String signStr, int priority) {
         super(priority, false);
         this.field = field;
         this.value = value;
         this.valueType = valueType;
+        this.signStr = signStr;
+        this.sign = signStrToSign(signStr);
     }
 
-    public GreaterThanOrEqualCondition(String field, String value, ValueType valueType, int priority, boolean ignoreAbsence) {
+    public CompareCondition(String field, String value, ValueType valueType, String signStr, int priority, boolean ignoreAbsence) {
         super(priority, ignoreAbsence);
         this.field = field;
         this.value = value;
         this.valueType = valueType;
+        this.signStr = signStr;
+        this.sign = signStrToSign(signStr);
+    }
+
+    private static String signStrToSign(String signStr) {
+        signStr = signStr.toUpperCase().trim();
+        return switch (signStr) {
+            case "GT" -> " > ";
+            case "GTE" -> " >= ";
+            case "LT" -> " < ";
+            case "LTE" -> " <= ";
+            default -> "";
+        };
+    }
+
+    private static String negateSignStr(String signStr) {
+        signStr = signStr.toUpperCase().trim();
+        return switch (signStr) {
+            case "GT" -> "LTE";
+            case "GTE" -> "LT";
+            case "LT" -> "GTE";
+            case "LTE" -> "GT";
+            default -> "";
+        };
     }
 
     @Override
     protected String generateName() {
         if (ValueType.Number.equals(this.valueType)) {
-            return String.format("%s %s num(%s)", this.field, GTE, this.value);
+            return String.format("%s %s num(%s)", this.field, this.sign, this.value);
         }
-        return String.format("%s %s %s", this.field, GTE, this.value);
+        return String.format("%s %s %s", this.field, this.sign, this.value);
     }
-
 
     @Override
     public Validation validate() {
@@ -63,7 +90,7 @@ public class GreaterThanOrEqualCondition extends Condition {
                 BigDecimal bd = new BigDecimal(this.value);
                 return Validation.VALID;
             } catch (Throwable e) {
-                return new Validation(false, e.getMessage());
+                return new Validation(false, this.getName() + " " + e.getMessage());
             }
         } else if (this.valueType == ValueType.Expression) {
             return Validation.VALID;
@@ -73,11 +100,10 @@ public class GreaterThanOrEqualCondition extends Condition {
 
     @Override
     public Condition negate() throws Exception {
-        Condition condition = new LessThanCondition(this.field, this.value, this.valueType, this.getPriority(), this.isIgnoreAbsence());
+        Condition condition = new CompareCondition(this.field, this.value, this.valueType, negateSignStr(this.signStr), this.getPriority(), this.isIgnoreAbsence());
         condition.build();
         return condition;
     }
-
 
     @Override
     public void beforeEvaluate(Context context) {
@@ -98,11 +124,11 @@ public class GreaterThanOrEqualCondition extends Condition {
     @Override
     public void compile() throws Exception {
         if (this.valueType == ValueType.Expression) {
-            this.expression = this.field + GTE + this.value;
+            this.expression = this.field + this.sign + this.value;
             this.buildCelProgram(null);
         } else if (this.valueType == ValueType.Number) {
             String valKey = Constant.BUILTIN_KEY + "NUM_001";
-            this.expression = this.field + GTE + valKey;
+            this.expression = this.field + this.sign + valKey;
             BigDecimal bd = new BigDecimal(this.value).stripTrailingZeros();
             Map<String, CelType> celType;
             if (bd.scale() <= 0) {
@@ -114,7 +140,7 @@ public class GreaterThanOrEqualCondition extends Condition {
             }
             this.buildCelProgram(celType);
         } else {
-            throw new UnsupportedOperationException("GreaterThanOrEqualCondition only supports Number and Expression");
+            throw new UnsupportedOperationException("CompareCondition only supports Number and Expression");
         }
     }
 }

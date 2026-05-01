@@ -1,6 +1,8 @@
 package labs.franklee.celero.rules;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import labs.franklee.celero.engine.CeleroRule;
 import labs.franklee.celero.exceptions.InvalidRuleNodeException;
 
@@ -8,7 +10,8 @@ import java.util.List;
 
 public class RuleBuilder {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private final static ObjectMapper MAPPER = JsonMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build();
 
     private String id;
     private String name;
