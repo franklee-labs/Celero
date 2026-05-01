@@ -1,6 +1,6 @@
 # Celero
 
-![Celero logo](./assets/celero_blue.svg)
+<img src="./assets/celero_blue.svg" width="250">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
