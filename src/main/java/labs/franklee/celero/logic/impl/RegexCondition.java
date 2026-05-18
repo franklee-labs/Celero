@@ -12,7 +12,6 @@ import labs.franklee.celero.logic.base.Validation;
  *
  * <p>Uses RE2J ({@link com.google.re2j.Pattern}) — the same engine as CEL — to validate regexp. so behaviour is
  * consistent regardless of which layer evaluates the expression.
- * </ol>
  */
 public class RegexCondition extends Condition {
 
