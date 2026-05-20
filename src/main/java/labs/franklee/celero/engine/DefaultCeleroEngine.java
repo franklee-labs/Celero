@@ -20,6 +20,12 @@ public class DefaultCeleroEngine extends AbstractCeleroEngine {
 
     private final List<ConditionListener> conditionListeners = new ArrayList<>();
 
+    /**
+     * Add condition listener.
+     * ConditionListener will be called immediately after executing a condition.
+     * Cached condition will not be called twice, so ConditionListener will not be called twice.
+     * @param listener A listener implemented {@link ConditionListener}
+     */
     public void addConditionListener(ConditionListener listener) {
         conditionListeners.add(listener);
         conditionListeners.sort(Comparator.comparingInt(ConditionListener::order));
@@ -27,11 +33,21 @@ public class DefaultCeleroEngine extends AbstractCeleroEngine {
 
     private final List<RuleListener> ruleListeners = new ArrayList<>();
 
+    /**
+     * Add rule listener.
+     * RuleListener will be called immediately after executing a rule.
+     * @param listener A listener implemented {@link RuleListener}
+     */
     public void addRuleListener(RuleListener listener) {
         ruleListeners.add(listener);
         ruleListeners.sort(Comparator.comparingInt(RuleListener::order));
     }
 
+    /**
+     * Thread-safe execution of rules
+     * @param rules List of {@link CeleroRule}
+     * @param ruleContext an instance of {@link RuleContext}. RuleContext.of(map)
+     */
     public void evaluate(List<CeleroRule> rules, RuleContext ruleContext) {
         for (CeleroRule rule : rules) {
             boolean result = evaluate(rule, ruleContext);

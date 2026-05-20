@@ -17,52 +17,73 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Demonstrates ConditionListener and RuleListener with explicit priority ordering.
+ * Demonstrates ConditionListener and RuleListener with explicit priority ordering,
+ * and how listeners share state via RuleContext.setAttribute / getAttribute.
  *
- * Listeners are called in ascending order() value — lower number fires first.
- * This example registers listeners out of order to show the engine sorts them correctly.
+ * Context attribute flow:
+ *   "metrics.total" / "metrics.matched"  written by MetricsConditionListener(order=1)
+ *                                         read    by DebugConditionListener(order=10)
+ *   "failed.conditions"                  written by AlertConditionListener(order=20)
+ *                                         read    by AuditRuleListener(order=1)
+ *   "matched.rules"                      written by RewardRuleListener(order=5)
+ *                                         read    by main() after evaluation
  *
- * Rule file: src/main/resources/examples/coupon-rules.json
+ * Listeners are registered out of order intentionally — the engine sorts them by order().
  */
 class SimpleRuleEngineListeners {
 
+    private static final String ATTR_METRICS_TOTAL   = "metrics.total";
+    private static final String ATTR_METRICS_MATCHED = "metrics.matched";
+    private static final String ATTR_FAILED_CONDITIONS = "failed.conditions";
+    private static final String ATTR_MATCHED_RULES   = "matched.rules";
+
     // ── Condition listeners ───────────────────────────────────────────────
 
-    // order=10: detailed debug log — fires second
-    static class DebugConditionListener implements ConditionListener {
-        @Override
-        public void onResult(ConditionEvent event) {
-            System.out.printf("  [CONDITION][order=10][DEBUG] rule=%s  condition=%s  matched=%b%n",
-                    event.getRuleName(), event.getConditionName(), event.isMatched());
-        }
-
-        @Override
-        public int order() { return 10; }
-    }
-
-    // order=1: metrics counter — fires first
+    // order=1: increments running counters in context — fires first among condition listeners
     static class MetricsConditionListener implements ConditionListener {
-        private int total = 0;
-        private int matched = 0;
-
         @Override
         public void onResult(ConditionEvent event) {
-            total++;
-            if (event.isMatched()) matched++;
-            System.out.printf("  [CONDITION][order=1 ][METRICS] conditions evaluated: %d  matched: %d%n", total, matched);
+            RuleContext ctx = event.getContext();
+            int total   = getInt(ctx, ATTR_METRICS_TOTAL)   + 1;
+            int matched = getInt(ctx, ATTR_METRICS_MATCHED) + (event.isMatched() ? 1 : 0);
+            ctx.setAttribute(ATTR_METRICS_TOTAL,   total);
+            ctx.setAttribute(ATTR_METRICS_MATCHED, matched);
+            System.out.printf("  [CONDITION][order=1 ][METRICS] setAttribute: total=%d  matched=%d%n", total, matched);
         }
 
         @Override
         public int order() { return 1; }
     }
 
-    // order=20: alert on failed condition — fires last
-    static class AlertConditionListener implements ConditionListener {
+    // order=10: reads the counters written by MetricsConditionListener — fires second
+    static class DebugConditionListener implements ConditionListener {
         @Override
         public void onResult(ConditionEvent event) {
+            RuleContext ctx = event.getContext();
+            int total   = getInt(ctx, ATTR_METRICS_TOTAL);
+            int matched = getInt(ctx, ATTR_METRICS_MATCHED);
+            System.out.printf("  [CONDITION][order=10][DEBUG] getAttribute: total=%d matched=%d  |  rule=%s  condition=%s  result=%b%n",
+                    total, matched, event.getRuleName(), event.getConditionName(), event.isMatched());
+        }
+
+        @Override
+        public int order() { return 10; }
+    }
+
+    // order=20: appends failed condition names to context list — fires last among condition listeners
+    static class AlertConditionListener implements ConditionListener {
+        @Override
+        @SuppressWarnings("unchecked")
+        public void onResult(ConditionEvent event) {
             if (!event.isMatched()) {
-                System.out.printf("  [CONDITION][order=20][ALERT] condition NOT met — rule=%s  condition=%s%n",
-                        event.getRuleName(), event.getConditionName());
+                RuleContext ctx = event.getContext();
+                List<String> failed = (List<String>) ctx.getAttribute(ATTR_FAILED_CONDITIONS);
+                if (failed == null) {
+                    failed = new ArrayList<>();
+                }
+                failed.add(event.getConditionName());
+                ctx.setAttribute(ATTR_FAILED_CONDITIONS, failed);
+                System.out.printf("  [CONDITION][order=20][ALERT] setAttribute: failed.conditions=%s%n", failed);
             }
         }
 
@@ -72,24 +93,36 @@ class SimpleRuleEngineListeners {
 
     // ── Rule listeners ────────────────────────────────────────────────────
 
-    // order=1: audit log — fires first
+    // order=1: reads and clears "failed.conditions" accumulated by AlertConditionListener — fires first among rule listeners
     static class AuditRuleListener implements RuleListener {
         @Override
+        @SuppressWarnings("unchecked")
         public void onRuleResult(RuleEvent event) {
-            System.out.printf("  [RULE][order=1 ][AUDIT] rule=%s  result=%s%n",
-                    event.getRuleName(), event.isMatched() ? "PASS" : "FAIL");
+            RuleContext ctx = event.getContext();
+            List<String> failed = (List<String>) ctx.getAttribute(ATTR_FAILED_CONDITIONS);
+            System.out.printf("  [RULE][order=1 ][AUDIT] getAttribute: failed.conditions=%s  |  rule=%s  result=%s%n",
+                    failed == null ? "[]" : failed, event.getRuleName(), event.isMatched() ? "PASS" : "FAIL");
+            ctx.setAttribute(ATTR_FAILED_CONDITIONS, new ArrayList<String>());
         }
 
         @Override
         public int order() { return 1; }
     }
 
-    // order=5: business action on match — fires second
+    // order=5: writes matched rule IDs to context for post-evaluation summary — fires second among rule listeners
     static class RewardRuleListener implements RuleListener {
         @Override
+        @SuppressWarnings("unchecked")
         public void onRuleResult(RuleEvent event) {
             if (event.isMatched()) {
-                System.out.printf("  [RULE][order=5 ][REWARD] issuing coupon for rule [%s]%n", event.getRuleName());
+                RuleContext ctx = event.getContext();
+                List<String> matchedRules = (List<String>) ctx.getAttribute(ATTR_MATCHED_RULES);
+                if (matchedRules == null) {
+                    matchedRules = new ArrayList<>();
+                }
+                matchedRules.add(event.getRuleId());
+                ctx.setAttribute(ATTR_MATCHED_RULES, matchedRules);
+                System.out.printf("  [RULE][order=5 ][REWARD] setAttribute: matched.rules=%s%n", matchedRules);
             }
         }
 
@@ -108,6 +141,7 @@ class SimpleRuleEngineListeners {
         }
     }
 
+    @SuppressWarnings("unchecked")
     static void main(String[] args) {
         DefaultCeleroEngine engine = new DefaultCeleroEngine();
 
@@ -131,9 +165,19 @@ class SimpleRuleEngineListeners {
 
         RuleContext ctx = RuleContext.of(user);
         engine.evaluate(rules, ctx);
+
+        // Read final summary written by RewardRuleListener
+        System.out.println("─".repeat(60));
+        List<String> matchedRules = (List<String>) ctx.getAttribute(ATTR_MATCHED_RULES);
+        System.out.println("[SUMMARY] getAttribute: matched.rules=" + matchedRules);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
+
+    private static int getInt(RuleContext ctx, String key) {
+        Object val = ctx.getAttribute(key);
+        return val instanceof Integer i ? i : 0;
+    }
 
     private static List<CeleroRule> loadRulesFromClasspath(String path) throws Throwable {
         ObjectMapper mapper = new ObjectMapper();
