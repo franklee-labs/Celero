@@ -8,6 +8,7 @@ import labs.franklee.celero.listener.AdvancedRuleListener;
 import labs.franklee.celero.logic.base.Condition;
 import labs.franklee.celero.logic.base.EvalResult;
 import labs.franklee.celero.logic.path.Path;
+import labs.franklee.celero.rules.RuleBuilder;
 
 import java.util.*;
 
@@ -20,6 +21,12 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
 
     private final List<AdvancedConditionListener> conditionListeners = new ArrayList<>();
 
+    /**
+     * Add condition listener.
+     * ConditionListener will be called immediately after executing a condition.
+     * Cached condition will not be called twice, so ConditionListener will not be called twice.
+     * @param listener A listener implemented {@link AdvancedConditionListener}
+     */
     public void addConditionListener(AdvancedConditionListener listener) {
         conditionListeners.add(listener);
         conditionListeners.sort(Comparator.comparingInt(AdvancedConditionListener::order));
@@ -27,11 +34,26 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
 
     private final List<AdvancedRuleListener> ruleListeners = new ArrayList<>();
 
+    /**
+     * Add rule listener.
+     * RuleListener will be called immediately after executing a rule.
+     * @param listener A listener implemented {@link AdvancedRuleListener}
+     */
     public void addRuleListener(AdvancedRuleListener listener) {
         ruleListeners.add(listener);
         ruleListeners.sort(Comparator.comparingInt(AdvancedRuleListener::order));
     }
 
+    /**
+     * Execution of rules
+     *
+     * <p>This method is thread-safe. Multiple threads may call it concurrently
+     * with the same {@link CeleroRule} as long as each call uses its own
+     * {@link RuleContext}.
+     *
+     * @param rules        the rules to evaluate; must have been built via {@link RuleBuilder}
+     * @param ruleContext the input parameters for this evaluation; create with {@link RuleContext#of}
+     */
     public void evaluate(List<CeleroRule> rules, RuleContext ruleContext) {
         for (CeleroRule rule : rules) {
             EvalResult result = evaluate(rule, ruleContext);
@@ -40,6 +62,20 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
         }
     }
 
+    /**
+     * Execution of a single rule
+     *
+     * <p>This method is thread-safe. Multiple threads may call it concurrently
+     * with the same {@link CeleroRule} as long as each call uses its own
+     * {@link RuleContext}.
+     *
+     * @param rule        the rule to evaluate; must have been built via {@link RuleBuilder}
+     * @param ruleContext the input parameters for this evaluation; create with {@link RuleContext#of}
+     * @return {@link EvalResult#TRUE}          if a fully matched path was found
+     *         {@link EvalResult#FALSE}         if every path had at least one unmatched condition
+     *         {@link EvalResult#INDETERMINATE} if no path was false, but at least one condition
+     *                                          could not be evaluated due to an absent field
+     */
     public EvalResult evaluate(CeleroRule rule, RuleContext ruleContext) {
         Context context = buildContext(ruleContext, rule.isCacheable(), enableMissingState);
         boolean miss = false;

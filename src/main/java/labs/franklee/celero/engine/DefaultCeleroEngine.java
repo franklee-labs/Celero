@@ -8,6 +8,7 @@ import labs.franklee.celero.listener.RuleListener;
 import labs.franklee.celero.logic.base.Condition;
 import labs.franklee.celero.logic.base.EvalResult;
 import labs.franklee.celero.logic.path.Path;
+import labs.franklee.celero.rules.RuleBuilder;
 
 import java.util.*;
 
@@ -44,9 +45,14 @@ public class DefaultCeleroEngine extends AbstractCeleroEngine {
     }
 
     /**
-     * Thread-safe execution of rules
-     * @param rules List of {@link CeleroRule}
-     * @param ruleContext an instance of {@link RuleContext}. RuleContext.of(map)
+     * Execution of rules
+     *
+     * <p>This method is thread-safe. Multiple threads may call it concurrently
+     * with the same {@link CeleroRule} as long as each call uses its own
+     * {@link RuleContext}.
+     *
+     * @param rules        the rules to evaluate; must have been built via {@link RuleBuilder}
+     * @param ruleContext the input parameters for this evaluation; create with {@link RuleContext#of}
      */
     public void evaluate(List<CeleroRule> rules, RuleContext ruleContext) {
         for (CeleroRule rule : rules) {
@@ -56,6 +62,17 @@ public class DefaultCeleroEngine extends AbstractCeleroEngine {
         }
     }
 
+    /**
+     * Execution of a single rule
+     *
+     * <p>This method is thread-safe. Multiple threads may call it concurrently
+     * with the same {@link CeleroRule} as long as each call uses its own
+     * {@link RuleContext}.
+     *
+     * @param rule        the rule to evaluate; must have been built via {@link RuleBuilder}
+     * @param ruleContext the input parameters for this evaluation; create with {@link RuleContext#of}
+     * @return true when RuleContext's params matched rule. false when mismatched rule.
+     */
     public boolean evaluate(CeleroRule rule, RuleContext ruleContext) {
         Context context = buildContext(ruleContext, rule.isCacheable(), enableMissingState);
         for (Path path : rule.getRule().getPathGroup().paths()) {
