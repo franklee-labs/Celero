@@ -17,70 +17,70 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Demonstrates how ignoreAbsence interacts with INDETERMINATE inside the same rule.
+ * Demonstrates AdvancedCeleroEngine which evaluates rules to a three-state result:
+ *   TRUE          — all conditions matched
+ *   FALSE         — at least one condition did not match
+ *   INDETERMINATE — no condition was false, but at least one required field was absent
  *
- * Rules used (coupon-rules-ignore-absence.json) mix per-condition ignoreAbsence settings:
+ * Compared to DefaultCeleroEngine (boolean), the advanced engine does not treat a
+ * missing field as an automatic FALSE — it defers the decision to the caller.
  *
- *   high-value-user:
- *     c-spend  ignoreAbsence=true  — missing totalSpend → FALSE  (collapse)
- *     c-level  ignoreAbsence=false — missing memberLevel → INDETERMINATE
- *
- *   vip-access:
- *     c-age      ignoreAbsence=true  — missing age      → FALSE  (collapse)
- *     c-verified ignoreAbsence=false — missing verified → INDETERMINATE
- *
- * Decision path inside Condition.execute() when a field is absent:
- *   ignoreAbsence=true  → FALSE          (field treated as not matching, result is certain)
- *   ignoreAbsence=false → INDETERMINATE  (only when AdvancedCeleroEngine / enableMissing=true)
- *
- * Test cases:
- *   Frank1 — missing totalSpend  (ignoreAbsence=true)  → high-value-user = FALSE
- *   Frank2 — missing memberLevel (ignoreAbsence=false) → high-value-user = INDETERMINATE
- *   Grace  — missing age + verified
- *               age      ignoreAbsence=true  → c-age=FALSE  (OR first branch fails)
- *               verified ignoreAbsence=false → c-verified=INDETERMINATE (OR second branch)
- *               OR(FALSE, INDETERMINATE)     → INDETERMINATE
- *               vip-access = INDETERMINATE
+ * Rule file: src/main/resources/examples/coupon-rules.json
  */
-class AdvancedRuleEngineIgnoreAbsence {
+class AdvancedRuleEngineExample {
 
     private static final List<CeleroRule> rules;
     private static final List<Map<String, Object>> users;
 
     static {
         try {
-            rules = loadRulesFromClasspath("examples/coupon-rules-ignore-absence.json");
+            rules = loadRulesFromClasspath("examples/coupon-rules.json");
             System.out.println("Loaded rules: " + rules.size());
-            System.out.println("  high-value-user: c-spend(ignoreAbsence=true)  c-level(ignoreAbsence=false)");
-            System.out.println("  vip-access:      c-age(ignoreAbsence=true)    c-verified(ignoreAbsence=false)");
+            rules.forEach(r -> System.out.printf("  [%s] %s — %s%n", r.getId(), r.getName(), r.getDescription()));
             System.out.println();
 
             users = List.of(
-                    // all fields present — same result as AdvancedRuleEngine
+                    // expected: TRUE  for high-value-user + vip-access
                     Map.of("name", "Alice", "totalSpend", 800L, "memberLevel", "gold",
+                            "registeredDays", 365L, "orderCount", 20L,
                             "status", "active", "age", 25L, "verified", true, "banned", false),
-                    // missing totalSpend: c-spend ignoreAbsence=true → FALSE (short-circuits AND)
-                    // expected: high-value-user = FALSE
-                    Map.of("name", "Frank1 (missing totalSpend)", "memberLevel", "gold",
+                    // expected: TRUE  for new-user-welcome + vip-access
+                    Map.of("name", "Bob", "totalSpend", 0L, "memberLevel", "normal",
+                            "registeredDays", 7L, "orderCount", 0L,
+                            "status", "active", "age", 20L, "verified", false, "banned", false),
+                    // expected: INDETERMINATE for high-value-user (memberLevel absent)
+                    //           TRUE          for vip-access
+                    Map.of("name", "Frank", "totalSpend", 800L,
+                            "registeredDays", 180L, "orderCount", 10L,
                             "status", "active", "age", 28L, "verified", true, "banned", false),
-                    // missing memberLevel: c-level ignoreAbsence=false → INDETERMINATE
-                    // expected: high-value-user = INDETERMINATE
-                    Map.of("name", "Frank2 (missing memberLevel)", "totalSpend", 800L,
-                            "status", "active", "age", 28L, "verified", true, "banned", false),
-                    // missing age + verified:
-                    //   c-age ignoreAbsence=true → FALSE, c-verified ignoreAbsence=false → INDETERMINATE
-                    //   OR(FALSE, INDETERMINATE) → INDETERMINATE
-                    // expected: vip-access = INDETERMINATE
-                    Map.of("name", "Grace (missing age + verified)",
-                            "totalSpend", 100L, "memberLevel", "normal",
-                            "status", "active", "banned", false)
+                    // expected: FALSE         for high-value-user (spend too low)
+                    //           INDETERMINATE for vip-access (age + verified absent)
+                    Map.of("name", "Grace", "totalSpend", 100L, "memberLevel", "normal",
+                            "registeredDays", 60L, "orderCount", 3L,
+                            "status", "active", "banned", false),
+                    // expected: FALSE for all rules
+                    Map.of("name", "Henry", "totalSpend", 200L, "memberLevel", "bronze",
+                            "registeredDays", 90L, "orderCount", 8L,
+                            "status", "inactive", "age", 35L, "verified", false, "banned", true)
             );
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }
 
-    static void main(String[] args) {
+    private static void runSingleRule() {
+        AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
+
+        System.out.println("=== Single rule evaluation ===");
+        CeleroRule vipRule = rules.stream().filter(r -> r.getId().equals("vip-access")).findFirst().orElseThrow();
+
+        // Missing "age" and "verified" — OR branch cannot be resolved
+        Map<String, Object> incompleteUser = Map.of("status", "active", "banned", false);
+        EvalResult result = engine.evaluate(vipRule, RuleContext.of(incompleteUser));
+        System.out.printf("Rule [%s]  result: %s%n%n", vipRule.getName(), label(result));
+    }
+
+    private static void runMultiRules() {
         AdvancedCeleroEngine engine = new AdvancedCeleroEngine();
 
         for (Map<String, Object> user : users) {
@@ -92,19 +92,24 @@ class AdvancedRuleEngineIgnoreAbsence {
             for (CeleroRule rule : rules) {
                 EvalResult result = engine.evaluate(rule, ruleContext);
                 Report report = ruleContext.getReports().get(rule);
-                System.out.printf("│  %s [%s]%n", label(result), rule.getId());
+                System.out.printf("│  %s [%s] %s%n", label(result), rule.getId(), rule.getName());
                 if (result.isTrue()) {
-                    printConditions("matched      ", report);
+                    printConditions("matched  ", report);
                 } else if (result.isFalse()) {
-                    printConditions("unmatched    ", report);
+                    printConditions("unmatched", report);
                 } else {
-                    printConditions("indeterminate", report);
+                    printConditions("absent   ", report);
                 }
             }
 
             System.out.println("└──────────────────────────────────────");
             System.out.println();
         }
+    }
+
+    static void main(String[] args) {
+        runSingleRule();
+        runMultiRules();
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
@@ -119,10 +124,10 @@ class AdvancedRuleEngineIgnoreAbsence {
         if (report == null) return;
         for (Route route : report.getRoutes()) {
             Set<Route.Item> items = switch (tag.trim()) {
-                case "matched"       -> route.getMatched();
-                case "unmatched"     -> route.getUnmatched();
-                case "indeterminate" -> route.getAbsent();
-                default              -> Set.of();
+                case "matched"   -> route.getMatched();
+                case "unmatched" -> route.getUnmatched();
+                case "absent"    -> route.getAbsent();
+                default          -> Set.of();
             };
             items.stream()
                     .filter(item -> item.getConditionId() != null)
@@ -132,7 +137,7 @@ class AdvancedRuleEngineIgnoreAbsence {
 
     private static List<CeleroRule> loadRulesFromClasspath(String path) throws Throwable {
         ObjectMapper mapper = new ObjectMapper();
-        InputStream is = AdvancedRuleEngineIgnoreAbsence.class.getClassLoader().getResourceAsStream(path);
+        InputStream is = AdvancedRuleEngineExample.class.getClassLoader().getResourceAsStream(path);
         if (is == null) {
             throw new IllegalStateException("rule file not found: " + path);
         }

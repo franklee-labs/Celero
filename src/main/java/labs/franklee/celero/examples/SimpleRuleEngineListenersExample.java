@@ -30,7 +30,7 @@ import java.util.Map;
  *
  * Listeners are registered out of order intentionally — the engine sorts them by order().
  */
-class SimpleRuleEngineListeners {
+class SimpleRuleEngineListenersExample {
 
     private static final String ATTR_METRICS_TOTAL   = "metrics.total";
     private static final String ATTR_METRICS_MATCHED = "metrics.matched";
@@ -181,7 +181,7 @@ class SimpleRuleEngineListeners {
 
     private static List<CeleroRule> loadRulesFromClasspath(String path) throws Throwable {
         ObjectMapper mapper = new ObjectMapper();
-        InputStream is = SimpleRuleEngineListeners.class.getClassLoader().getResourceAsStream(path);
+        InputStream is = SimpleRuleEngineListenersExample.class.getClassLoader().getResourceAsStream(path);
         if (is == null) {
             throw new IllegalStateException("rule file not found: " + path);
         }

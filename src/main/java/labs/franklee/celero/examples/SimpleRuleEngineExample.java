@@ -20,7 +20,7 @@ import java.util.Map;
  * Rule file: src/main/resources/examples/coupon-rules.json
  * Scenario: determine which coupon each user qualifies for.
  */
-class SimpleRuleEngine {
+class SimpleRuleEngineExample {
     private final static List<CeleroRule> rules;
     private final static List<Map<String, Object>> users;
     static {
@@ -106,7 +106,7 @@ class SimpleRuleEngine {
     // helpers
     private static List<CeleroRule> loadRulesFromClasspath(String path) throws Throwable {
         ObjectMapper mapper = new ObjectMapper();
-        InputStream is = SimpleRuleEngine.class.getClassLoader().getResourceAsStream(path);
+        InputStream is = SimpleRuleEngineExample.class.getClassLoader().getResourceAsStream(path);
         if (is == null) {
             throw new IllegalStateException("rule file not found: " + path);
         }
