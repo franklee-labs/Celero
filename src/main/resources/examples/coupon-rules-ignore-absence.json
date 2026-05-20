@@ -1,0 +1,108 @@
+[
+  {
+    "id": "high-value-user",
+    "name": "High-Value User Coupon",
+    "description": "totalSpend >= 500 and memberLevel is gold or platinum",
+    "rule": {
+      "type": "relation",
+      "sign": "AND",
+      "children": [
+        {
+          "id": "c-spend",
+          "name": "spend threshold",
+          "type": "condition",
+          "sign": "GTE",
+          "ignoreAbsence": true,
+          "properties": {
+            "field": "totalSpend",
+            "value": "500",
+            "valueType": "Number"
+          }
+        },
+        {
+          "id": "c-level",
+          "name": "member level",
+          "type": "condition",
+          "sign": "IN",
+          "ignoreAbsence": false,
+          "properties": {
+            "field": "memberLevel",
+            "value": "[\"gold\", \"platinum\"]",
+            "valueType": "List"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "vip-access",
+    "name": "VIP Exclusive Coupon",
+    "description": "status is active AND (age >= 18 OR verified) AND NOT banned",
+    "rule": {
+      "type": "relation",
+      "sign": "AND",
+      "children": [
+        {
+          "id": "c-status",
+          "name": "account active",
+          "type": "condition",
+          "sign": "EQ",
+          "ignoreAbsence": false,
+          "properties": {
+            "field": "status",
+            "value": "active",
+            "valueType": "String"
+          }
+        },
+        {
+          "type": "relation",
+          "sign": "OR",
+          "children": [
+            {
+              "id": "c-age",
+              "name": "age check",
+              "type": "condition",
+              "sign": "GTE",
+              "ignoreAbsence": true,
+              "properties": {
+                "field": "age",
+                "value": "18",
+                "valueType": "Number"
+              }
+            },
+            {
+              "id": "c-verified",
+              "name": "identity verified",
+              "type": "condition",
+              "sign": "EQ",
+              "ignoreAbsence": false,
+              "properties": {
+                "field": "verified",
+                "value": "true",
+                "valueType": "Boolean"
+              }
+            }
+          ]
+        },
+        {
+          "type": "relation",
+          "sign": "NOT",
+          "children": [
+            {
+              "id": "c-banned",
+              "name": "banned check",
+              "type": "condition",
+              "sign": "EQ",
+              "ignoreAbsence": false,
+              "properties": {
+                "field": "banned",
+                "value": "true",
+                "valueType": "Boolean"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+]
