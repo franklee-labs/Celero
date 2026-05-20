@@ -22,6 +22,17 @@
 
 ## Installation
 
+**import from maven**
+```xml
+<dependency>
+    <groupId>io.github.franklee-labs</groupId>
+    <artifactId>celero</artifactId>
+    <version>0.0.1-RELEASE</version>
+</dependency>
+```
+
+
+**build from source**
 ```bash
 git clone https://github.com/franklee-labs/celero.git
 cd celero
