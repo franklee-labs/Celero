@@ -12,6 +12,18 @@ import labs.franklee.celero.rules.RuleBuilder;
 
 import java.util.*;
 
+/**
+ * A rule engine that evaluates rules to a three-state {@link EvalResult}:
+ * {@code TRUE}, {@code FALSE}, or {@code INDETERMINATE}.
+ *
+ * <p>Unlike {@link DefaultCeleroEngine}, this engine does not automatically treat a
+ * missing input field as {@code false}. When a condition references a field that is
+ * absent from the {@link RuleContext}, the condition yields {@code INDETERMINATE},
+ * allowing the caller to defer or handle the ambiguous case explicitly.
+ *
+ * <p>A single engine instance may be shared across threads. Each evaluation call must
+ * use its own {@link RuleContext}.
+ */
 public class AdvancedCeleroEngine extends AbstractCeleroEngine {
 
     private final boolean enableMissingState = true;
@@ -22,10 +34,17 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
     private final List<AdvancedConditionListener> conditionListeners = new ArrayList<>();
 
     /**
-     * Add condition listener.
-     * ConditionListener will be called immediately after executing a condition.
-     * Cached condition will not be called twice, so ConditionListener will not be called twice.
-     * @param listener A listener implemented {@link AdvancedConditionListener}
+     * Registers an {@link AdvancedConditionListener} that is notified after each condition
+     * execution with a three-state {@link EvalResult}.
+     *
+     * <p>Listeners are invoked in ascending {@link AdvancedConditionListener#order()} value.
+     * If a condition result is served from cache, the listener is <em>not</em> called again —
+     * it fires only when the condition is actually executed.
+     *
+     * <p>This method is not thread-safe; register all listeners before sharing the engine
+     * across threads.
+     *
+     * @param listener the listener to register; must not be {@code null}
      */
     public void addConditionListener(AdvancedConditionListener listener) {
         conditionListeners.add(listener);
@@ -35,9 +54,15 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
     private final List<AdvancedRuleListener> ruleListeners = new ArrayList<>();
 
     /**
-     * Add rule listener.
-     * RuleListener will be called immediately after executing a rule.
-     * @param listener A listener implemented {@link AdvancedRuleListener}
+     * Registers an {@link AdvancedRuleListener} that is notified after each rule evaluation
+     * completes with a three-state {@link EvalResult}.
+     *
+     * <p>Listeners are invoked in ascending {@link AdvancedRuleListener#order()} value.
+     *
+     * <p>This method is not thread-safe; register all listeners before sharing the engine
+     * across threads.
+     *
+     * @param listener the listener to register; must not be {@code null}
      */
     public void addRuleListener(AdvancedRuleListener listener) {
         ruleListeners.add(listener);
@@ -45,13 +70,13 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
     }
 
     /**
-     * Execution of rules
+     * Evaluates a list of rules against the given context, firing registered listeners
+     * after each rule completes.
      *
-     * <p>This method is thread-safe. Multiple threads may call it concurrently
-     * with the same {@link CeleroRule} as long as each call uses its own
-     * {@link RuleContext}.
+     * <p>This method is thread-safe. Multiple threads may call it concurrently with the
+     * same rule list, as long as each call uses its own {@link RuleContext}.
      *
-     * @param rules        the rules to evaluate; must have been built via {@link RuleBuilder}
+     * @param rules       the rules to evaluate; must have been built via {@link RuleBuilder}
      * @param ruleContext the input parameters for this evaluation; create with {@link RuleContext#of}
      */
     public void evaluate(List<CeleroRule> rules, RuleContext ruleContext) {
@@ -63,11 +88,13 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
     }
 
     /**
-     * Execution of a single rule
+     * Evaluates a single rule against the given context.
      *
-     * <p>This method is thread-safe. Multiple threads may call it concurrently
-     * with the same {@link CeleroRule} as long as each call uses its own
-     * {@link RuleContext}.
+     * <p>This method is thread-safe. Multiple threads may call it concurrently with the
+     * same {@link CeleroRule}, as long as each call uses its own {@link RuleContext}.
+     *
+     * <p>Note: this overload does <em>not</em> fire registered {@link AdvancedRuleListener}s.
+     * Use {@link #evaluate(List, RuleContext)} if you need rule-level listener callbacks.
      *
      * @param rule        the rule to evaluate; must have been built via {@link RuleBuilder}
      * @param ruleContext the input parameters for this evaluation; create with {@link RuleContext#of}
@@ -171,7 +198,6 @@ public class AdvancedCeleroEngine extends AbstractCeleroEngine {
         route.setSkipped(skipped);
         return route;
     }
-
 
     private void callConditionListeners(AdvancedConditionEvent event) {
         this.conditionListeners.forEach(listener -> {
