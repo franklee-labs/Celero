@@ -1,6 +1,6 @@
 # Celero
 
-<img src="./assets/celero_blue.svg" width="250">
+<img src="./assets/celero_blue.svg" alt="Celero logo" width="250">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -14,7 +14,7 @@
 - **三值逻辑**：支持 `TRUE` / `FALSE` / `INDETERMINATE` 三态结果（`AdvancedCeleroEngine`）
 - **跨 Path 条件结果缓存**：同一条件在多路径中只执行一次（需显式开启）
 - **条件优先级**：通过 `priority` 控制同一 Path 内条件的执行顺序
-- **事件监听**：Rule 和 Condition 级别的回调
+- **事件监听**：Rule 和 Condition 级别的回调，支持优先级排序
 - **评估报告**：记录每条 Path 上已匹配、未匹配、缺失、已跳过的条件
 - **CEL 表达式支持**：集成 [Google CEL](https://github.com/google/cel-spec) 进行高级表达式求值
 
@@ -22,17 +22,18 @@
 
 ## 安装
 
-**import from maven**
+### 从 Maven 引入
+
 ```xml
 <dependency>
     <groupId>io.github.franklee-labs</groupId>
     <artifactId>celero</artifactId>
-    <version>0.0.1-RELEASE</version>
+    <version>0.0.2-RELEASE</version>
 </dependency>
 ```
 
+### 从源码构建
 
-**build from source**
 ```bash
 git clone https://github.com/franklee-labs/celero.git
 cd celero
@@ -101,14 +102,14 @@ rule → INDETERMINATE（有路径不确定，且无路径为 TRUE）
 
 当规则展开后，同一个 `ConditionNode` 实例可能出现在多条 Path 中。例如 `AND(A, OR(B, C))` 展开为 `[A, B]` 和 `[A, C]`，条件 A 在两条 Path 中均出现。
 
-若不开启缓存，A 会被执行两次（尤其是开销较大的复杂正则匹配）。
+若不开启缓存，A 会被执行两次（尤其是开销较大的正则匹配等复杂条件）。
 
 **开启缓存后**，第一次执行 A 的结果会写入 `Context`，后续 Path 直接读取缓存，跳过再次执行。
 
 缓存需同时满足两个条件（双开关设计，互相独立）：
 
 1. **规则级开关**：`RuleBuilder.cacheable(true)` — 是否允许该规则使用缓存
-2. **条件级开关**：`ConditionNode.setCacheable(true)` — 是否允许该条件的结果被缓存
+2. **条件级开关**：条件节点上设置 `"cacheable": true` — 是否允许该条件的结果被缓存
 
 ```text
 规则级 cacheable = false  →  无论条件如何，均不缓存
@@ -117,6 +118,8 @@ rule → INDETERMINATE（有路径不确定，且无路径为 TRUE）
 ```
 
 缓存生命周期仅限于**单次规则评估**（存储于 `Context`），不会跨规则或跨请求泄漏。
+
+> **注意**：`ConditionListener` 只在条件被真正执行时触发，缓存命中不会触发监听器。
 
 ---
 
@@ -152,7 +155,7 @@ boolean result = engine.evaluate(rule, context);  // true
 
 ### JSON 构建规则
 
-`fromJson` 分别接收规则 id 和逻辑树根节点的 JSON。条件属性嵌套在 `"properties"` 对象中：
+`fromJson` 分别接收规则 id 和逻辑树根节点的 JSON。条件属性嵌套在 `"properties"` 对象中。`cacheable`、`ignoreAbsence` 等是条件节点的**顶级字段**，不在 `"properties"` 内。
 
 ```java
 String ruleJson = """
@@ -177,7 +180,7 @@ String ruleJson = """
 CeleroRule rule = RuleBuilder.fromJson("age-check", ruleJson)
     .name("Adult Verification")
     .build();
-boolean result = engine.evaluate(rule, RuleContext.of(Map.of("age", 25)));  // true
+boolean result = engine.evaluate(rule, RuleContext.of(Map.of("age", 25L)));  // true
 ```
 
 ### 组合逻辑
@@ -200,25 +203,38 @@ CeleroRule rule = RuleBuilder.create().id("rule").name("rule").root(andNode).bui
 ### 开启缓存（多 Path 场景）
 
 ```java
-// 条件 A 标记为可缓存
+// 条件 A 标记为可缓存（节点级字段）
 ConditionNode condA = new ConditionNode();
-condA.setId("cond-a").setSign("EQ").setCacheable(true);
-condA.setProperties(Map.of("field", "role", "value", "admin", "valueType", "String"));
+condA.setId("cond-a").setSign("REGEXP").setCacheable(true);
+condA.setProperties(Map.of("field", "email", "value", "^[\\w.+-]+@[\\w-]+\\.[a-z]{2,}$"));
 
 // 规则级也开启缓存
 CeleroRule rule = RuleBuilder.create()
     .id("rule")
-    .name("rule")
     .cacheable(true)   // 规则级开关
     .root(andNode)
     .build();
 
 // AND(A, OR(B, C)) → path1=[A,B], path2=[A,C]
-// path1: 执行 A（结果缓存），执行 B
-// path2: 直接读缓存中的 A 结果，执行 C
-// A 仅执行一次
+// path1: 执行 A（结果缓存），执行 B → false
+// path2: 直接读缓存中的 A 结果（不再执行），执行 C → true
 DefaultCeleroEngine engine = new DefaultCeleroEngine();
-engine.evaluate(rule, RuleContext.of(Map.of("role", "admin")));
+engine.evaluate(rule, RuleContext.of(Map.of("email", "alice@example.com", "level", "high")));
+```
+
+JSON 中 `cacheable` 为条件节点的顶级字段：
+
+```json
+{
+  "id": "cond-a",
+  "type": "condition",
+  "sign": "REGEXP",
+  "cacheable": true,
+  "properties": {
+    "field": "email",
+    "value": "^[\\w.+-]+@[\\w-]+\\.[a-z]{2,}$"
+  }
+}
 ```
 
 ---
@@ -255,20 +271,22 @@ r3.isIndeterminate();  // true
 | `GTE` | 大于等于 | `field`、`value`、`valueType`：Number / Expression |
 | `LT` | 小于 | `field`、`value`、`valueType`：Number / Expression |
 | `LTE` | 小于等于 | `field`、`value`、`valueType`：Number / Expression |
-| `IN` | 在集合中 | `field`、`value`（JSON 数组）、`valueType`：List |
-| `NIN` | 不在集合中 | `field`、`value`（JSON 数组）、`valueType`：List |
+| `IN` | 在集合中 | `field`、`value`（JSON 数组字符串）、`valueType`：List |
+| `NIN` | 不在集合中 | `field`、`value`（JSON 数组字符串）、`valueType`：List |
 | `REGEXP` | 正则匹配 | `field`、`value`（正则表达式） |
 | `CEL` | Google CEL 表达式 | `expression`（CEL 表达式字符串） |
 | `INTERSECT` | 两个列表有公共元素 | `field1`、`valueType1`、`field2`、`valueType2`：List / Expression |
 | `DISJOINT` | 两个列表无公共元素 | `field1`、`valueType1`、`field2`、`valueType2`：List / Expression |
-| `EXISTS` | 字段存在于上下文中 | `field`（CEL 路径，如 `params.age`） |
-| `ABSENT` | 字段不存在于上下文中 | `field`（CEL 路径，如 `params.age`） |
+| `EXISTS` | 字段存在于上下文中 | `field`（字段名） |
+| `ABSENT` | 字段不存在于上下文中 | `field`（字段名） |
 
 ### 特定条件说明
 
 **`INTERSECT` / `DISJOINT`**：`valueType` 为 `List` 时，字段值为 JSON 数组字面量（如 `"[\"a\",\"b\"]"`）；`valueType` 为 `Expression` 时，字段为上下文中持有列表的变量名。
 
-**`EXISTS` / `ABSENT`**：无论上下文模式如何，始终返回确定的 `TRUE` 或 `FALSE`。`ABSENT` 是 `EXISTS` 的逻辑取反。
+**`EXISTS` / `ABSENT`**：无论上下文模式如何，始终返回确定的 `TRUE` 或 `FALSE`。`ABSENT` 是 `EXISTS` 的逻辑取反，`ignoreAbsence` 对这两个条件不适用。
+
+**数值类型**：`value` 字符串不含小数部分（如 `"18"`）时，引擎编译为 `int64`；含小数部分（如 `"18.5"`）时编译为 `double`。`RuleContext` 传入的参数需对应——整数规则传 `long`，小数规则传 `double`。
 
 ### CEL 表达式示例
 
@@ -291,8 +309,20 @@ Priority.DEFAULT = 0
 Priority.LOWEST  = Integer.MAX_VALUE  // 最后执行
 ```
 
-通过 JSON 配置规则时，在 `ConditionNode` 的 `properties` 中设置 `priority` 字段可指定优先级。
-通过 `ConditionFactory` 创建时，在 properties map 中传入 `priority`（int）可指定优先级。
+在 `ConditionNode` 的 `properties` 中设置 `priority` 字段：
+
+```json
+{
+  "id": "cond-1",
+  "type": "condition",
+  "sign": "REGEXP",
+  "properties": {
+    "field": "email",
+    "value": "^.+@.+$",
+    "priority": 1
+  }
+}
+```
 
 ---
 
@@ -305,28 +335,33 @@ Priority.LOWEST  = Integer.MAX_VALUE  // 最后执行
 
 对条件设置 `ignoreAbsence = true` 后，参数缺失将**始终**返回 `FALSE`，即使在 `AdvancedCeleroEngine` 下也不会产生 `INDETERMINATE`。适用于可选字段——缺失时直接判为不满足，而不让整条规则变为不确定。
 
+`ignoreAbsence` 是条件节点的**顶级字段**，不在 `properties` 内。
+
+**编程式：**
+
 ```java
-// 编程式
 ConditionNode cond = new ConditionNode();
 cond.setId("opt-cond").setSign("EQ");
+cond.setIgnoreAbsence(true);   // 顶级节点字段，不在 properties 中
 cond.setProperties(Map.of(
     "field", "optionalTag",
     "value", "vip",
-    "valueType", "String",
-    "ignoreAbsence", true    // optionalTag 缺失 → FALSE，而非 INDETERMINATE
+    "valueType", "String"
 ));
 ```
+
+**JSON：**
 
 ```json
 {
   "id": "opt-cond",
   "type": "condition",
   "sign": "EQ",
+  "ignoreAbsence": true,
   "properties": {
     "field": "optionalTag",
     "value": "vip",
-    "valueType": "String",
-    "ignoreAbsence": true
+    "valueType": "String"
   }
 }
 ```
@@ -338,29 +373,28 @@ cond.setProperties(Map.of(
 
 ## 事件监听
 
+监听器在评估前注册，按 `order()` 升序调用（值越小越先执行）。监听器内抛出异常会被静默吞掉，不影响规则评估。
+
 ### DefaultCeleroEngine
 
 ```java
+// Lambda 写法（ConditionListener 和 RuleListener 均为 @FunctionalInterface）
+engine.addConditionListener(event ->
+    System.out.println("条件 " + event.getConditionName() + " 匹配：" + event.isMatched())
+);
+
+engine.addRuleListener(event ->
+    System.out.println("规则 " + event.getRuleName() + " 匹配：" + event.isMatched())
+);
+
+// 指定 order 的写法
 engine.addConditionListener(new ConditionListener() {
     @Override
     public void onResult(ConditionEvent event) {
-        System.out.println("Condition: " + event.getConditionId()
-            + " Result: " + event.isResult());
+        System.out.println("[order=10] " + event.getConditionName() + " → " + event.isMatched());
     }
-
     @Override
-    public int order() { return 0; }
-});
-
-engine.addRuleListener(new RuleListener() {
-    @Override
-    public void onRuleResult(RuleEvent event) {
-        System.out.println("Rule: " + event.getRuleName()
-            + " Result: " + event.isResult());
-    }
-
-    @Override
-    public int order() { return 0; }
+    public int order() { return 10; }
 });
 ```
 
@@ -369,18 +403,48 @@ engine.addRuleListener(new RuleListener() {
 使用 `AdvancedConditionListener` / `AdvancedRuleListener`，事件携带 `EvalResult`（三态）：
 
 ```java
-engine.addConditionListener(new AdvancedConditionListener() {
-    @Override
-    public void onResult(AdvancedConditionEvent event) {
-        EvalResult result = event.getResult();  // TRUE / FALSE / INDETERMINATE
+engine.addConditionListener(event -> {
+    EvalResult result = event.getResult();  // TRUE / FALSE / INDETERMINATE
+    if (result.isIndeterminate()) {
+        System.out.println("字段缺失：" + event.getConditionName());
     }
+});
 
-    @Override
-    public int order() { return 0; }
+engine.addRuleListener(event -> {
+    EvalResult result = event.isMatched();  // TRUE / FALSE / INDETERMINATE
+    System.out.println("规则 " + event.getRuleName() + " → " + result);
 });
 ```
 
-多个监听器按 `order()` 升序执行（值越小越先执行）。监听器内抛出异常会被静默吞掉，不影响规则评估。
+### 通过 RuleContext 属性在监听器间传递状态
+
+监听器可通过 `RuleContext` 的 key-value 属性在同一次评估中共享数据：
+
+```java
+// 低 order 的监听器写入
+engine.addConditionListener(new ConditionListener() {
+    public void onResult(ConditionEvent event) {
+        int count = (int) Optional.ofNullable(event.getContext().getAttribute("count")).orElse(0);
+        event.getContext().setAttribute("count", count + 1);
+    }
+    public int order() { return 1; }
+});
+
+// 高 order 的监听器读取
+engine.addConditionListener(new ConditionListener() {
+    public void onResult(ConditionEvent event) {
+        System.out.println("已执行条件数：" + event.getContext().getAttribute("count"));
+    }
+    public int order() { return 10; }
+});
+
+// 评估结束后，调用方也可读取属性
+RuleContext ctx = RuleContext.of(params);
+engine.evaluate(rules, ctx);
+System.out.println("合计：" + ctx.getAttribute("count"));
+```
+
+> **注意**：`params` 的 key 不能以 `_` 开头，`_` 前缀保留给引擎内置参数。
 
 ---
 
@@ -392,34 +456,16 @@ engine.addConditionListener(new AdvancedConditionListener() {
 RuleContext ctx = RuleContext.of(params).setEnableReports(true);
 engine.evaluate(rule, ctx);
 
-Map<CeleroRule, Report> reports = ctx.getReports();
-Report report = reports.get(rule);
+Report report = ctx.getReports().get(rule);
 for (Route route : report.getRoutes()) {
     route.getMatched();    // 已通过的条件
-    route.getUnmatched();  // 未通过的条件
+    route.getUnmatched();  // 未通过的条件（导致该 Path 失败）
     route.getAbsent();     // 结果为 INDETERMINATE 的条件（仅 AdvancedCeleroEngine）
     route.getSkipped();    // 因短路未执行的条件
 }
 ```
 
 每条 `Route` 对应一次 Path 评估，包含 `Route.Item`（conditionId + conditionName）。
-
----
-
-## RuleContext 属性
-
-`RuleContext` 除了存放规则参数（`params`）外，还支持附加任意 key-value 属性，可在监听器中读写：
-
-```java
-RuleContext ctx = RuleContext.of(params)
-    .setAttribute("requestId", "abc-123")
-    .setAttribute("source", "api");
-
-// 在监听器中读取
-String requestId = (String) event.getContext().getAttribute("requestId");
-```
-
-> **注意**：`params` 的 key 不能以 `_` 开头，`_` 前缀保留给引擎内置参数。
 
 ---
 
@@ -435,6 +481,34 @@ engine.evaluate(rules, ctx);
 // AdvancedCeleroEngine — 同上，但 RuleListener 携带 EvalResult
 advancedEngine.evaluate(rules, ctx);
 ```
+
+> **注意**：单规则版 `engine.evaluate(rule, ctx)` **不触发** `RuleListener`。需要规则级回调时请使用 List 版。
+
+---
+
+## 自定义条件类型
+
+通过 `ConditionFactoryRegistry` 注册自定义工厂，可全局注册（所有规则可用）或按规则 id 注册：
+
+```java
+// 实现 ConditionFactory
+public class StartsWithConditionFactory implements ConditionFactory {
+    @Override
+    public Condition create(ConditionNode node) {
+        String field  = (String) node.getProperties().get("field");
+        String prefix = (String) node.getProperties().get("value");
+        return new StartsWithCondition(field, prefix);
+    }
+}
+
+// 启动时注册一次 — sign 不能与内置 sign 冲突
+ConditionFactoryRegistry.registerGlobalFactory("STARTS_WITH", new StartsWithConditionFactory());
+
+// 或只对某条规则注册
+ConditionFactoryRegistry.registerFactory("my-rule-id", "STARTS_WITH", new StartsWithConditionFactory());
+```
+
+注册后即可在规则定义中像内置 sign 一样使用。
 
 ---
 
@@ -457,9 +531,10 @@ RuleBuilder
               ├─ Condition.execute(context)
               │    ├─ evaluate() 正常 → TRUE / FALSE
               │    └─ MissingParameterException
-              │         ├─ DefaultCeleroEngine → FALSE
-              │         └─ AdvancedCeleroEngine → INDETERMINATE
-              └─ 写入缓存（若开启）
+              │         ├─ ignoreAbsence=true          → FALSE
+              │         ├─ DefaultCeleroEngine          → FALSE
+              │         └─ AdvancedCeleroEngine         → INDETERMINATE
+              └─ 写入缓存（若该条件开启了缓存）
 ```
 
 ### 包结构
@@ -477,6 +552,21 @@ src/main/java/labs/franklee/celero/
 ├── context/     Context（评估上下文，含缓存存储）
 └── exceptions/  EvalException, InvalidConditionException, MissingParameterException ...
 ```
+
+---
+
+## 示例
+
+`src/main/java/labs/franklee/celero/examples/` 目录下提供了可直接运行的示例，每个类均有 `main` 方法。
+
+| 类名                                       | 演示内容 |
+|------------------------------------------| --- |
+| `SimpleRuleEngineExample`                | 从 JSON 加载规则，单规则与批量评估 |
+| `SimpleRuleEngineListenersExample`       | `ConditionListener` / `RuleListener` 优先级排序及 context 属性共享 |
+| `AdvancedRuleEngineExample`              | `AdvancedCeleroEngine` 三态结果（TRUE / FALSE / INDETERMINATE） |
+| `AdvancedRuleEngineListenersExample`     | `AdvancedConditionListener` / `AdvancedRuleListener` 及 context 属性 |
+| `AdvancedRuleEngineIgnoreAbsenceExample` | 同一规则内混用 `ignoreAbsence` 设置 |
+| `SimpleRuleEngineCachedConditionExample` | 条件结果缓存——`A AND (B OR C)` 中 A 只执行一次 |
 
 ---
 

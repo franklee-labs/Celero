@@ -1,6 +1,6 @@
 # Celero
 
-<img src="./assets/celero_blue.svg" width="250">
+<img src="./assets/celero_blue.svg" alt="Celero logo" width="250">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -14,7 +14,7 @@
 - **Three-valued logic**: `TRUE` / `FALSE` / `INDETERMINATE` result states (`AdvancedCeleroEngine`)
 - **Cross-path condition result cache**: a shared condition across multiple paths is evaluated only once (opt-in)
 - **Condition priority**: control the execution order of conditions within a path via `priority`
-- **Event listeners**: rule-level and condition-level callbacks
+- **Event listeners**: rule-level and condition-level callbacks with ordering support
 - **Evaluation reports**: per-path record of matched, unmatched, absent, and skipped conditions
 - **CEL expression support**: integrates [Google CEL](https://github.com/google/cel-spec) for advanced expression evaluation
 
@@ -22,7 +22,8 @@
 
 ## Installation
 
-**import from maven**
+### Import from Maven
+
 ```xml
 <dependency>
     <groupId>io.github.franklee-labs</groupId>
@@ -31,8 +32,8 @@
 </dependency>
 ```
 
+### Build from source
 
-**build from source**
 ```bash
 git clone https://github.com/franklee-labs/celero.git
 cd celero
@@ -101,14 +102,14 @@ rule → INDETERMINATE (no path is TRUE, but one path is uncertain)
 
 After expansion, the same `ConditionNode` instance may appear in multiple paths. For example, `AND(A, OR(B, C))` expands to `[A, B]` and `[A, C]` — condition A appears in both paths.
 
-Without caching, A is evaluated twice (especially costly for complex regular expression conditions).
+Without caching, A is evaluated twice (especially costly for complex conditions such as regular expressions).
 
 **With caching enabled**, the result of the first execution of A is written into the `Context`; subsequent paths read from the cache and skip re-evaluation.
 
 Caching requires **both** switches to be enabled (independent, dual-gate design):
 
 1. **Rule-level switch**: `RuleBuilder.cacheable(true)` — allows the rule to use caching at all
-2. **Condition-level switch**: `ConditionNode.setCacheable(true)` — allows this specific condition's result to be cached
+2. **Condition-level switch**: `"cacheable": true` on the condition node — allows this specific condition's result to be cached
 
 ```text
 rule cacheable = false                                    →  no caching, regardless of condition setting
@@ -117,6 +118,8 @@ rule cacheable = true, condition cacheable = true         →  result is cached 
 ```
 
 Cache lifetime is **scoped to a single rule evaluation** (stored in `Context`); it never leaks across rules or requests.
+
+> **Note**: `ConditionListener` is only fired when a condition is actually executed. A cache hit does not trigger the listener.
 
 ---
 
@@ -152,7 +155,7 @@ boolean result = engine.evaluate(rule, context);  // true
 
 ### Building a Rule from JSON
 
-`fromJson` accepts the rule id and the JSON of the logic tree root node separately. Condition properties are nested under a `"properties"` object:
+`fromJson` accepts the rule id and the JSON of the logic tree root node. Condition properties are nested under a `"properties"` object. Fields such as `cacheable` and `ignoreAbsence` are **top-level** condition node fields, not inside `"properties"`.
 
 ```java
 String ruleJson = """
@@ -177,7 +180,7 @@ String ruleJson = """
 CeleroRule rule = RuleBuilder.fromJson("age-check", ruleJson)
     .name("Adult Verification")
     .build();
-boolean result = engine.evaluate(rule, RuleContext.of(Map.of("age", 25)));  // true
+boolean result = engine.evaluate(rule, RuleContext.of(Map.of("age", 25L)));  // true
 ```
 
 ### Composing Logic
@@ -200,25 +203,38 @@ This expands to two paths: `[A, B]` and `[A, C]`.
 ### Enabling the Cache (Multi-Path Scenario)
 
 ```java
-// Mark condition A as cacheable
+// Mark condition A as cacheable at the node level
 ConditionNode condA = new ConditionNode();
-condA.setId("cond-a").setSign("EQ").setCacheable(true);
-condA.setProperties(Map.of("field", "role", "value", "admin", "valueType", "String"));
+condA.setId("cond-a").setSign("REGEXP").setCacheable(true);
+condA.setProperties(Map.of("field", "email", "value", "^[\\w.+-]+@[\\w-]+\\.[a-z]{2,}$"));
 
 // Also enable the rule-level cache switch
 CeleroRule rule = RuleBuilder.create()
     .id("rule")
-    .name("rule")
     .cacheable(true)   // rule-level switch
     .root(andNode)
     .build();
 
 // AND(A, OR(B, C)) → path1=[A,B], path2=[A,C]
-// path1: evaluate A (result cached), evaluate B
-// path2: read A's cached result, evaluate C
-// A is executed only once
+// path1: evaluate A (result cached), evaluate B → false
+// path2: read A's cached result (not re-executed), evaluate C → true
 DefaultCeleroEngine engine = new DefaultCeleroEngine();
-engine.evaluate(rule, RuleContext.of(Map.of("role", "admin")));
+engine.evaluate(rule, RuleContext.of(Map.of("email", "alice@example.com", "level", "high")));
+```
+
+In JSON, set `cacheable` at the condition node level:
+
+```json
+{
+  "id": "cond-a",
+  "type": "condition",
+  "sign": "REGEXP",
+  "cacheable": true,
+  "properties": {
+    "field": "email",
+    "value": "^[\\w.+-]+@[\\w-]+\\.[a-z]{2,}$"
+  }
+}
 ```
 
 ---
@@ -255,20 +271,22 @@ A typical use case for `INDETERMINATE`: in progressive rule-matching scenarios w
 | `GTE` | Greater than or equal | `field`, `value`, `valueType`: Number / Expression |
 | `LT` | Less than | `field`, `value`, `valueType`: Number / Expression |
 | `LTE` | Less than or equal | `field`, `value`, `valueType`: Number / Expression |
-| `IN` | Value exists in collection | `field`, `value` (JSON array), `valueType`: List |
-| `NIN` | Value does not exist in collection | `field`, `value` (JSON array), `valueType`: List |
+| `IN` | Value exists in collection | `field`, `value` (JSON array string), `valueType`: List |
+| `NIN` | Value does not exist in collection | `field`, `value` (JSON array string), `valueType`: List |
 | `REGEXP` | Regular expression match | `field`, `value` (regex pattern) |
 | `CEL` | Google CEL expression | `expression` (CEL expression string) |
 | `INTERSECT` | Two lists share at least one common element | `field1`, `valueType1`, `field2`, `valueType2`: List / Expression |
 | `DISJOINT` | Two lists share no common elements | `field1`, `valueType1`, `field2`, `valueType2`: List / Expression |
-| `EXISTS` | Field is present in the evaluation context | `field` (CEL path, e.g. `params.age`) |
-| `ABSENT` | Field is absent from the evaluation context | `field` (CEL path, e.g. `params.age`) |
+| `EXISTS` | Field is present in the evaluation context | `field` (field name) |
+| `ABSENT` | Field is absent from the evaluation context | `field` (field name) |
 
 ### Notes on specific conditions
 
 **`INTERSECT` / `DISJOINT`**: when `valueType` is `List`, the field value is a JSON array literal (e.g., `"[\"a\",\"b\"]"`); when `valueType` is `Expression`, the field is a context variable name holding a list.
 
-**`EXISTS` / `ABSENT`**: always return a definite `TRUE` or `FALSE` regardless of context mode. `ABSENT` is the logical negation of `EXISTS`.
+**`EXISTS` / `ABSENT`**: always return a definite `TRUE` or `FALSE` regardless of context mode. `ABSENT` is the logical negation of `EXISTS`. `ignoreAbsence` does not apply to these two conditions.
+
+**Numeric types**: when the `value` string has no decimal part (e.g., `"18"`), the engine compiles it as `int64`; when it has a decimal part (e.g., `"18.5"`), it is compiled as `double`. The corresponding parameter in `RuleContext` must match — pass `long` for integer rules, `double` for decimal rules.
 
 ### CEL Expression Example
 
@@ -291,8 +309,20 @@ Priority.DEFAULT = 0
 Priority.LOWEST  = Integer.MAX_VALUE  // executed last
 ```
 
-When configuring rules via JSON, set the `priority` field inside the `properties` object of a `ConditionNode`.
-When creating conditions via `ConditionFactory`, pass `priority` (int) in the properties map.
+Set `priority` inside the `properties` object of a condition node:
+
+```json
+{
+  "id": "cond-1",
+  "type": "condition",
+  "sign": "REGEXP",
+  "properties": {
+    "field": "email",
+    "value": "^.+@.+$",
+    "priority": 1
+  }
+}
+```
 
 ---
 
@@ -305,28 +335,33 @@ By default, when a condition's required parameter is missing from the context:
 
 Setting `ignoreAbsence = true` on a condition overrides this: a missing parameter **always** returns `FALSE`, even in `AdvancedCeleroEngine`. This is useful for optional fields that should simply fail the condition rather than make the entire rule indeterminate.
 
+`ignoreAbsence` is a **top-level field** on the condition node, not a property.
+
+**Programmatic:**
+
 ```java
-// Programmatic
 ConditionNode cond = new ConditionNode();
 cond.setId("opt-cond").setSign("EQ");
+cond.setIgnoreAbsence(true);   // top-level node field, not in properties
 cond.setProperties(Map.of(
     "field", "optionalTag",
     "value", "vip",
-    "valueType", "String",
-    "ignoreAbsence", true    // missing optionalTag → FALSE, not INDETERMINATE
+    "valueType", "String"
 ));
 ```
+
+**JSON:**
 
 ```json
 {
   "id": "opt-cond",
   "type": "condition",
   "sign": "EQ",
+  "ignoreAbsence": true,
   "properties": {
     "field": "optionalTag",
     "value": "vip",
-    "valueType": "String",
-    "ignoreAbsence": true
+    "valueType": "String"
   }
 }
 ```
@@ -338,29 +373,28 @@ It is **not** applicable to `EXISTS` / `ABSENT`, since those conditions are spec
 
 ## Event Listeners
 
+Listeners are registered before evaluation and called in ascending `order()` value (lower = earlier). Exceptions thrown inside a listener are silently swallowed and do not affect rule evaluation.
+
 ### DefaultCeleroEngine
 
 ```java
+// Lambda form (ConditionListener and RuleListener are @FunctionalInterface)
+engine.addConditionListener(event ->
+    System.out.println("Condition " + event.getConditionName() + " matched: " + event.isMatched())
+);
+
+engine.addRuleListener(event ->
+    System.out.println("Rule " + event.getRuleName() + " matched: " + event.isMatched())
+);
+
+// With explicit order
 engine.addConditionListener(new ConditionListener() {
     @Override
     public void onResult(ConditionEvent event) {
-        System.out.println("Condition: " + event.getConditionId()
-            + " Result: " + event.isResult());
+        System.out.println("[order=10] " + event.getConditionName() + " → " + event.isMatched());
     }
-
     @Override
-    public int order() { return 0; }
-});
-
-engine.addRuleListener(new RuleListener() {
-    @Override
-    public void onRuleResult(RuleEvent event) {
-        System.out.println("Rule: " + event.getRuleName()
-            + " Result: " + event.isResult());
-    }
-
-    @Override
-    public int order() { return 0; }
+    public int order() { return 10; }
 });
 ```
 
@@ -369,18 +403,48 @@ engine.addRuleListener(new RuleListener() {
 Use `AdvancedConditionListener` / `AdvancedRuleListener`; events carry an `EvalResult` (three-valued):
 
 ```java
-engine.addConditionListener(new AdvancedConditionListener() {
-    @Override
-    public void onResult(AdvancedConditionEvent event) {
-        EvalResult result = event.getResult();  // TRUE / FALSE / INDETERMINATE
+engine.addConditionListener(event -> {
+    EvalResult result = event.getResult();  // TRUE / FALSE / INDETERMINATE
+    if (result.isIndeterminate()) {
+        System.out.println("Missing field for: " + event.getConditionName());
     }
+});
 
-    @Override
-    public int order() { return 0; }
+engine.addRuleListener(event -> {
+    EvalResult result = event.isMatched();  // TRUE / FALSE / INDETERMINATE
+    System.out.println("Rule " + event.getRuleName() + " → " + result);
 });
 ```
 
-Multiple listeners execute in ascending `order()` (lower value = earlier). Exceptions thrown inside a listener are silently swallowed and do not affect rule evaluation.
+### RuleContext Attributes — sharing state between listeners
+
+Listeners can read and write arbitrary key-value attributes on the `RuleContext` to share state within a single evaluation:
+
+```java
+// A lower-order listener writes a value
+engine.addConditionListener(new ConditionListener() {
+    public void onResult(ConditionEvent event) {
+        int count = (int) Optional.ofNullable(event.getContext().getAttribute("count")).orElse(0);
+        event.getContext().setAttribute("count", count + 1);
+    }
+    public int order() { return 1; }
+});
+
+// A higher-order listener reads it
+engine.addConditionListener(new ConditionListener() {
+    public void onResult(ConditionEvent event) {
+        System.out.println("Conditions evaluated so far: " + event.getContext().getAttribute("count"));
+    }
+    public int order() { return 10; }
+});
+
+// After evaluation, the caller can read attributes too
+RuleContext ctx = RuleContext.of(params);
+engine.evaluate(rules, ctx);
+System.out.println("Total: " + ctx.getAttribute("count"));
+```
+
+> **Note**: keys in `params` must not start with `_`; the `_` prefix is reserved for engine-internal parameters.
 
 ---
 
@@ -392,34 +456,16 @@ When reports are enabled, each rule evaluation records the status of every condi
 RuleContext ctx = RuleContext.of(params).setEnableReports(true);
 engine.evaluate(rule, ctx);
 
-Map<CeleroRule, Report> reports = ctx.getReports();
-Report report = reports.get(rule);
+Report report = ctx.getReports().get(rule);
 for (Route route : report.getRoutes()) {
-    route.getMatched();    // conditions that passed
-    route.getUnmatched();  // conditions that failed
-    route.getAbsent();     // conditions that returned INDETERMINATE (AdvancedCeleroEngine only)
-    route.getSkipped();    // conditions skipped due to short-circuit
+    route.getMatched();    // conditions that evaluated to true
+    route.getUnmatched();  // conditions that evaluated to false (caused path to fail)
+    route.getAbsent();     // conditions with INDETERMINATE result (AdvancedCeleroEngine only)
+    route.getSkipped();    // conditions not evaluated due to short-circuit
 }
 ```
 
-Each `Route` corresponds to one path evaluation and contains `Route.Item` objects (conditionId + conditionName).
-
----
-
-## RuleContext Attributes
-
-In addition to rule parameters (`params`), `RuleContext` supports arbitrary key-value attributes that can be read/write inside listeners:
-
-```java
-RuleContext ctx = RuleContext.of(params)
-    .setAttribute("requestId", "abc-123")
-    .setAttribute("source", "api");
-
-// Read inside a listener
-String requestId = (String) event.getContext().getAttribute("requestId");
-```
-
-> **Note**: keys in `params` must not start with `_`; the `_` prefix is reserved for engine-internal parameters.
+Each `Route` corresponds to one path evaluation attempt and contains `Route.Item` objects (conditionId + conditionName).
 
 ---
 
@@ -435,6 +481,34 @@ engine.evaluate(rules, ctx);
 // AdvancedCeleroEngine — same, but RuleListener receives EvalResult
 advancedEngine.evaluate(rules, ctx);
 ```
+
+> **Note**: the single-rule overload `engine.evaluate(rule, ctx)` does **not** fire `RuleListener`. Use the list overload when you need rule-level callbacks.
+
+---
+
+## Custom Condition Types
+
+Register a custom factory globally (available to all rules) or scoped to a specific rule:
+
+```java
+// Implement ConditionFactory
+public class StartsWithConditionFactory implements ConditionFactory {
+    @Override
+    public Condition create(ConditionNode node) {
+        String field  = (String) node.getProperties().get("field");
+        String prefix = (String) node.getProperties().get("value");
+        return new StartsWithCondition(field, prefix);
+    }
+}
+
+// Register once at startup — sign must not conflict with built-in signs
+ConditionFactoryRegistry.registerGlobalFactory("STARTS_WITH", new StartsWithConditionFactory());
+
+// Or scope it to a specific rule
+ConditionFactoryRegistry.registerFactory("my-rule-id", "STARTS_WITH", new StartsWithConditionFactory());
+```
+
+Then use the sign in a rule definition like any built-in sign.
 
 ---
 
@@ -457,9 +531,10 @@ Evaluation:
               ├─ Condition.execute(context)
               │    ├─ evaluate() succeeds → TRUE / FALSE
               │    └─ MissingParameterException
-              │         ├─ DefaultCeleroEngine  → FALSE
-              │         └─ AdvancedCeleroEngine → INDETERMINATE
-              └─ write to cache (if enabled)
+              │         ├─ ignoreAbsence=true          → FALSE
+              │         ├─ DefaultCeleroEngine          → FALSE
+              │         └─ AdvancedCeleroEngine         → INDETERMINATE
+              └─ write to cache (if cacheable)
 ```
 
 ### Package Structure
@@ -477,6 +552,21 @@ src/main/java/labs/franklee/celero/
 ├── context/     Context (evaluation context, holds the condition result cache)
 └── exceptions/  EvalException, InvalidConditionException, MissingParameterException ...
 ```
+
+---
+
+## Examples
+
+Runnable examples are provided under `src/main/java/labs/franklee/celero/examples/`. Each class has a `main` method.
+
+| Class                                    | Demonstrates |
+|------------------------------------------| --- |
+| `SimpleRuleEngineExample`                | Load rules from JSON, single-rule and batch evaluation |
+| `SimpleRuleEngineListenersExample`       | `ConditionListener` / `RuleListener` with priority ordering and context attributes |
+| `AdvancedRuleEngineExample`              | `AdvancedCeleroEngine` with TRUE / FALSE / INDETERMINATE results |
+| `AdvancedRuleEngineListenersExample`            | `AdvancedConditionListener` / `AdvancedRuleListener` with context attributes |
+| `AdvancedRuleEngineIgnoreAbsenceExample`        | Mixed `ignoreAbsence` settings within the same rule |
+| `SimpleRuleEngineCachedConditionExample` | Condition result caching — A only evaluated once in `A AND (B OR C)` |
 
 ---
 
